@@ -3382,7 +3382,12 @@ const onRun = async (input, platform) => {
 }
 
 async function checkAndRun(inputs, platform) {
-  const mergedResults = {};
+  const mergedResults = {
+    proxies: [],
+    outbounds: [],
+    base64: '',
+    headers: []
+  };
 
   for (const input of inputs) {
     let result;

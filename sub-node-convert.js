@@ -1,6 +1,5 @@
 import { Base64 } from 'js-base64';
 import YAML from 'static-js-yaml';
-
 // =======================================================================================================================
 //                                      以下是兼容SubStore API的一些处理
 // =======================================================================================================================
@@ -3319,47 +3318,89 @@ ${list}`
 /**
  * sub store 节点转换入口
  */
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url)
+    const target = url.searchParams.get('target')
+    const inputnode = url.searchParams.get('url')
+    const nodeArray = inputnode.split(/[|,]/); 
+    if (!target || !nodeArray) {
+      return new Response('ok', { status: 200 })
+    }
+
+    try {
+      const result = await checkAndRun(nodeArray, target)
+      if (result?.proxies?.length > 0 || result?.outbounds?.length > 0) {
+        return new Response(JSON.stringify(result, null, 4), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      } else {
+      return new Response(result, { status: 200, headers: { 'Content-Type': 'text/plain' } })
+      }
+    } catch (error) {
+      return new Response(`Error: ${error.message}`, { status: 500 })
+    }
+  }
+}
 const onRun = async (input, platform) => {
-  const mihomo_proxies = ProxyUtils.parse(input)
-  const singbox_proxies = ProxyUtils.produce(mihomo_proxies, 'singbox', 'internal')
-  const v2ray_proxies = ProxyUtils.produce(mihomo_proxies, 'v2ray', 'internal')
-  let result;
+  const mihomo_proxies = ProxyUtils.parse(input);
+  const singbox_proxies = ProxyUtils.produce(mihomo_proxies, 'singbox', 'internal');
+  const v2ray_proxies = ProxyUtils.produce(mihomo_proxies, 'v2ray', 'internal');
+  
+  let result = {};
 
   if (/singbox|sing-box|sfa/i.test(platform)) {
     // Output Singbox proxies as JSON in 'outbounds'
-    result = JSON.stringify({ outbounds: singbox_proxies }, null, 4);
+    result.outbounds = singbox_proxies;
   } else if (/meta|clash.meta|clash|clashverge|mihomo/i.test(platform)) {
     // Output Mihomo proxies as JSON in 'proxies'
-    result = JSON.stringify({ proxies: mihomo_proxies }, null, 4);
-  } else if (platform === 'v2ray') {
+    result.proxies = mihomo_proxies;
+  } else {
     // Output V2Ray proxies as TXT
-    result = v2ray_proxies;
-  } else {
-    result = [];  // Fallback for unsupported platforms
+    result.base64 = v2ray_proxies;
   }
 
-  console.log('转换结果如下', result);
+  return result;
 }
 
-async function checkAndRun(input, platform) {
-  if (typeof input === 'string' && (input.startsWith('http://') || input.startsWith('https://'))) {
-    try {
-      const response = await fetch(input);
-      if (response.ok) {
-        const data = await response.text(); // 获取文本内容
-        await onRun(data, platform);
-      } else {
-        console.error('Failed to fetch data, response not ok');
-        await onRun(input, platform); // 如果 fetch 失败，传入原始 input
+async function checkAndRun(inputs, platform) {
+  const mergedResults = {
+    proxies: [],
+    outbounds: [],
+    base64: ''
+  };
+
+  for (const input of inputs) {
+    let result;
+    
+    if (typeof input === 'string' && (input.startsWith('http://') || input.startsWith('https://'))) {
+      try {
+        const response = await fetch(input, { headers: { 'User-Agent': 'sub-store-node' } });
+        if (response.ok) {
+          const data = await response.text(); // 获取文本内容
+          result = await onRun(data, platform);
+        } else {
+          console.error('Failed to fetch data, response not ok');
+          result = await onRun(input, platform); // 如果 fetch 失败，传入原始 input
+        }
+      } catch (error) {
+        console.error('Error while fetching URL:', error);
+        result = await onRun(input, platform); // 捕获异常时传入原始 input
       }
-    } catch (error) {
-      console.error('Error while fetching URL:', error);
-      await onRun(input, platform); // 捕获异常时传入原始 input
+    } else {
+      result = await onRun(input, platform); // 如果不是 http 或 https URL，直接传入
     }
-  } else {
-    await onRun(input, platform); // 如果不是 http 或 https URL，直接传入
+
+    // 合并返回结果
+    if (result.proxies) mergedResults.proxies = [...mergedResults.proxies, ...result.proxies];
+    if (result.outbounds) mergedResults.outbounds = [...mergedResults.outbounds, ...result.outbounds];
+    if (result.base64) mergedResults.base64 += result.base64;
+  }
+
+  // 返回合并后的结果
+  if (mergedResults.proxies.length > 0) {
+    return { proxies: mergedResults.proxies };
+  } else if (mergedResults.outbounds.length > 0) {
+    return { outbounds: mergedResults.outbounds };
+  } else if (mergedResults.base64) {
+    return mergedResults.base64.trim();
   }
 }
-// 使用示例
-const inputnode = '';
-checkAndRun(inputnode, 'singbox');

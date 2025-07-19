@@ -134,13 +134,13 @@ const PROXY_PRODUCERS = {
 
 const $ = {
   info: (msg) => {
-    console.log(msg)
+    console.log('[info]', msg)
   },
   error: (msg) => {
-    console.log(msg)
+    console.log('[error]', msg)
   },
   log: (msg) => {
-    console.log(msg)
+    console.log('[log]', msg)
   }
 }
 

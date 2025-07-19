@@ -3351,7 +3351,7 @@ const onRun = async (input, platform) => {
       result.outbounds = ProxyUtils.produce(input.proxies, 'singbox', 'internal');
     } else if (/meta|clash.meta|clash|clashverge|mihomo/i.test(platform)) {
       // 保持Clash格式
-      result.proxies = input.proxies;
+      result.proxies = ProxyUtils.produce(input.proxies, 'mihomo', 'internal');
     } else {
       // clash 转 base64 
       result.base64 = ProxyUtils.produce(input.proxies, 'v2ray', 'internal');
@@ -3360,7 +3360,7 @@ const onRun = async (input, platform) => {
     // Singbox转换
     if (/singbox|sing-box|sfa/i.test(platform)) {
       // 保持Singbox格式
-      result.outbounds = input.outbounds;
+      result.outbounds = ProxyUtils.produce(input.outbounds, 'singbox', 'internal');
     } else if (/meta|clash.meta|clash|clashverge|mihomo/i.test(platform)) {
       // singbox 转 clash 
       result.outbounds = ProxyUtils.produce(input.outbounds, 'mihomo', 'internal');
@@ -3375,7 +3375,7 @@ const onRun = async (input, platform) => {
     } else if (/meta|clash.meta|clash|clashverge|mihomo/i.test(platform)) {
       result.proxies = ProxyUtils.produce(mihomo_proxies, 'mihomo', 'internal');
     } else {
-      result.base64 = input; // 保持原样
+      result.base64 = ProxyUtils.produce(mihomo_proxies, 'v2ray', 'internal');
     }
   }
   return result;

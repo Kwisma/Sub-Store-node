@@ -3331,7 +3331,7 @@ const onRun = async (input, platform) => {
   } else if (/meta|clash.meta|clash|clashverge|mihomo/i.test(platform)) {
     // Output Mihomo proxies as JSON in 'proxies'
     result = JSON.stringify({ proxies: mihomo_proxies }, null, 4);
-  } else {
+  } else if (platform === 'v2ray') {
     // Output V2Ray proxies as TXT
     result = v2ray_proxies;
   } else {

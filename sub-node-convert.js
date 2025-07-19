@@ -3325,13 +3325,13 @@ const onRun = async (input, platform) => {
   const v2ray_proxies = ProxyUtils.produce(mihomo_proxies, 'v2ray', 'internal')
   let result;
 
-  if (platform === 'singbox') {
+  if (/singbox|sing-box|sfa/i.test(platform)) {
     // Output Singbox proxies as JSON in 'outbounds'
     result = JSON.stringify({ outbounds: singbox_proxies }, null, 4);
-  } else if (platform === 'mihomo') {
+  } else if (/meta|clash.meta|clash|clashverge|mihomo/i.test(platform)) {
     // Output Mihomo proxies as JSON in 'proxies'
     result = JSON.stringify({ proxies: mihomo_proxies }, null, 4);
-  } else if (platform === 'v2ray') {
+  } else {
     // Output V2Ray proxies as TXT
     result = v2ray_proxies;
   } else {

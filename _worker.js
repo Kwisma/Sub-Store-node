@@ -3323,16 +3323,16 @@ export default {
     const url = new URL(request.url)
     const target = url.searchParams.get('target')
     const inputnode = url.searchParams.get('url')
-    const nodeArray = inputnode.split(/[|,]/); 
-    if (!target || !nodeArray) {
+    const nodeArray = inputnode ? inputnode.split(/[|,]/) : []; 
+    if (!target || nodeArray.length === 0) {
       return new Response('ok', { status: 200 })
     }
 
     try {
       const result = await checkAndRun(nodeArray, target)
-      if (Array.isArray(result?.proxies) && result?.proxies.length > 0) {
+      if (Array.isArray(result?.proxies) && result?.proxies?.length > 0) {
         return new Response(JSON.stringify({proxies: result.proxies}, null, 4), { status: 200, headers: { ...result.headers, 'Content-Type': 'application/json' }});
-      } else if (Array.isArray(result?.outbounds) && result?.outbounds.length > 0) {
+      } else if (Array.isArray(result?.outbounds) && result?.outbounds?.length > 0) {
         return new Response(JSON.stringify({outbounds: result.outbounds}, null, 4), { status: 200, headers: { ...result.headers, 'Content-Type': 'application/json' }});
       } else {
         return new Response(result.base64, { status: 200, headers: { ...result.randomHeaders, 'Content-Type': 'text/plain; charset=utf-8' }})

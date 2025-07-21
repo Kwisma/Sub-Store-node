@@ -3329,7 +3329,20 @@ export default {
     const inputnode = url.searchParams.get('url')
     const nodeArray = inputnode ? inputnode.split(/[,]/) : [];
     if (!target || nodeArray.length === 0) {
-      return new Response('ok', { status: 200 })
+      return new Response(
+        JSON.stringify({
+          message: '这是一个基于 cloudflare pagers 的 sub-store 节点转换工具，仅转换节点用',
+          usage: {
+            target: '输出生成的文件类型，singbox 或 mihomo 或 v2ray',
+            url: '输入编码后的订阅链接，多个订阅可用 , 分割',
+            example: '/?target=v2ray&url=UrlEncode(编码后的订阅)',
+          },
+        }, null, 4),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     try {
@@ -3339,42 +3352,30 @@ export default {
       } else if (Array.isArray(result?.outbounds) && result?.outbounds?.length > 0) {
         return new Response(JSON.stringify({ outbounds: result.outbounds }, null, 4), { status: 200, headers: { ...result.headers, 'Content-Type': 'application/json' } });
       } else {
-        return new Response(result.base64, { status: 200, headers: { ...result.randomHeaders, 'Content-Type': 'text/plain; charset=utf-8' } })
+        return new Response(JSON.stringify(result, null, 4), { status: 200, headers: { ...result.randomHeaders, 'Content-Type': 'text/plain; charset=utf-8' } })
       }
     } catch (error) {
       return new Response(`Error: ${error.message}`, { status: 500 })
     }
   }
 }
-function isBase64(str) {
-  return /^[A-Za-z0-9+/=]+$/.test(str) && str.length % 4 === 0;
-}
-function isValidURL(str) {
-  try {
-    const url = new URL(str);
-    return /^[a-zA-Z][a-zA-Z0-9+.-]*:$/.test(url.protocol);
-  } catch (err) {
-    return false;
-  }
-}
+
 const onRun = async (input, platform) => {
   let result = {};
-  let proxies = input?.proxies;
-  if (!proxies && (isBase64(input) || isValidURL(input))) {
-    proxies = ProxyUtils.parse(input);
+  if (!input?.proxies) {
+    input.proxies = ProxyUtils.parse(input);
   }
-  if (proxies) {
+  if (input.proxies) {
     const typeMap = {
       singbox: { key: 'outbounds', format: 'singbox' },
       mihomo: { key: 'proxies', format: 'mihomo' },
       default: { key: 'base64', format: 'v2ray' },
     };
     const { key, format } = typeMap[platform] || typeMap.default;
-    result[key] = ProxyUtils.produce(proxies, format, 'internal');
+    result[key] = ProxyUtils.produce(input.proxies, format, 'internal');
   }
   return result;
 };
-
 
 async function checkAndRun(inputs, platform) {
   const mergedResults = {
@@ -3384,38 +3385,44 @@ async function checkAndRun(inputs, platform) {
     headers: []
   };
 
-  for (const input of inputs) {
-    let result, response;
+  // 处理单个输入的函数
+  const processInput = async (input) => {
     try {
-      response = await fetchResponse(input, 'sub-store-node/clash');
-      if (response.data?.proxies) {
+      const response = await fetchResponse(input, 'clash.mate');
+      const data = response?.data ?? response; // 如果没有 data 字段，使用 response 本身
+      if (data) {
         mergedResults.headers.push(response.headers);
-      } else {
-        response = await fetchResponse(input, 'sub-store-node/clash');
+        return await onRun(data, platform);
       }
-      result = await onRun(response.data, platform);
     } catch (error) {
       $.error('Error while fetching URL:', error);
-      result = await onRun(input, platform);
+      return await onRun(input, platform);
     }
+  };
+
+  // 遍历所有输入
+  for (const input of inputs) {
+    const result = await processInput(input);
 
     // 合并返回结果
-    if (result.proxies) mergedResults.proxies = [...mergedResults.proxies, ...result.proxies];
-    if (result.outbounds) mergedResults.outbounds = [...mergedResults.outbounds, ...result.outbounds];
-    if (result.base64) mergedResults.base64 += result.base64;
+    if (result?.proxies) mergedResults.proxies.push(...result.proxies);
+    if (result?.outbounds) mergedResults.outbounds.push(...result.outbounds);
+    if (result?.base64) mergedResults.base64 += result.base64;
   }
+
   // 随机选择一个 headers
-  const randomIndex = Math.floor(Math.random() * mergedResults.headers.length);
-  const randomHeaders = mergedResults.headers[randomIndex];
+  const randomHeaders = mergedResults.headers[Math.floor(Math.random() * mergedResults.headers.length)];
+
   // 返回合并后的结果
-  if (Array.isArray(mergedResults.proxies) && mergedResults.proxies.length > 0) {
+  if (mergedResults.proxies.length > 0) {
     return { proxies: mergedResults.proxies, headers: randomHeaders };
-  } else if (Array.isArray(mergedResults.outbounds) && mergedResults.outbounds.length > 0) {
+  } else if (mergedResults.outbounds.length > 0) {
     return { outbounds: mergedResults.outbounds, headers: randomHeaders };
   } else {
     return { base64: mergedResults.base64, headers: randomHeaders };
   }
 }
+
 async function fetchResponse(url, userAgent) {
   let response;
   try {
@@ -3426,7 +3433,7 @@ async function fetchResponse(url, userAgent) {
       }
     });
   } catch {
-    return true
+    return url
   }
   // 直接使用 Object.fromEntries 转换 headers
   const headersObj = Object.fromEntries(response.headers.entries());

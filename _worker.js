@@ -3352,7 +3352,7 @@ export default {
       } else if (Array.isArray(result?.outbounds) && result?.outbounds?.length > 0) {
         return new Response(JSON.stringify({ outbounds: result.outbounds }, null, 4), { status: 200, headers: { ...result.headers, 'Content-Type': 'application/json' } });
       } else {
-        return new Response(result.base64, { status: 200, headers: { ...result.randomHeaders, 'Content-Type': 'text/plain; charset=utf-8' } })
+        return new Response(result.base64, { status: 200, headers: { ...result.headers, 'Content-Type': 'text/plain; charset=utf-8' } })
       }
     } catch (error) {
       return new Response(`Error: ${error.message}`, { status: 500 })

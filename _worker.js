@@ -1323,9 +1323,8 @@ function URI_Producer() {
         break
       case 'ss':
         const userinfo = `${proxy.cipher}:${proxy.password}`
-        result = `ss://${
-          proxy.cipher?.startsWith('2022-blake3-') ? `${encodeURIComponent(proxy.cipher)}:${encodeURIComponent(proxy.password)}` : Base64.encode(userinfo)
-        }@${proxy.server}:${proxy.port}${proxy.plugin ? '/' : ''}`
+        result = `ss://${proxy.cipher?.startsWith('2022-blake3-') ? `${encodeURIComponent(proxy.cipher)}:${encodeURIComponent(proxy.password)}` : Base64.encode(userinfo)
+          }@${proxy.server}:${proxy.port}${proxy.plugin ? '/' : ''}`
         if (proxy.plugin) {
           result += '?plugin='
           const opts = proxy['plugin-opts']
@@ -1353,9 +1352,8 @@ function URI_Producer() {
         break
       case 'ssr':
         result = `${proxy.server}:${proxy.port}:${proxy.protocol}:${proxy.cipher}:${proxy.obfs}:${Base64.encode(proxy.password)}/`
-        result += `?remarks=${Base64.encode(proxy.name)}${proxy['obfs-param'] ? '&obfsparam=' + Base64.encode(proxy['obfs-param']) : ''}${
-          proxy['protocol-param'] ? '&protocolparam=' + Base64.encode(proxy['protocol-param']) : ''
-        }`
+        result += `?remarks=${Base64.encode(proxy.name)}${proxy['obfs-param'] ? '&obfsparam=' + Base64.encode(proxy['obfs-param']) : ''}${proxy['protocol-param'] ? '&protocolparam=' + Base64.encode(proxy['protocol-param']) : ''
+          }`
         result = 'ssr://' + Base64.encode(result)
         break
       case 'vmess':
@@ -1566,11 +1564,10 @@ function URI_Producer() {
             trojanMode = `&mode=${encodeURIComponent(proxy._mode)}`
           }
         }
-        result = `trojan://${proxy.password}@${proxy.server}:${proxy.port}?sni=${encodeURIComponent(proxy.sni || proxy.server)}${
-          proxy['skip-cert-verify'] ? '&allowInsecure=1' : ''
-        }${trojanTransport}${trojanAlpn}${trojanFp}${trojanSecurity}${trojanSid}${trojanPbk}${trojanSpx}${trojanMode}${trojanExtra}#${encodeURIComponent(
-          proxy.name
-        )}`
+        result = `trojan://${proxy.password}@${proxy.server}:${proxy.port}?sni=${encodeURIComponent(proxy.sni || proxy.server)}${proxy['skip-cert-verify'] ? '&allowInsecure=1' : ''
+          }${trojanTransport}${trojanAlpn}${trojanFp}${trojanSecurity}${trojanSid}${trojanPbk}${trojanSpx}${trojanMode}${trojanExtra}#${encodeURIComponent(
+            proxy.name
+          )}`
         break
       case 'hysteria2':
         let hysteria2params = []
@@ -1673,9 +1670,8 @@ function URI_Producer() {
             }
           })
 
-          result = `tuic://${encodeURIComponent(proxy.uuid)}:${encodeURIComponent(proxy.password)}@${proxy.server}:${
-            proxy.port
-          }?${tuicParams.join('&')}#${encodeURIComponent(proxy.name)}`
+          result = `tuic://${encodeURIComponent(proxy.uuid)}:${encodeURIComponent(proxy.password)}@${proxy.server}:${proxy.port
+            }?${tuicParams.join('&')}#${encodeURIComponent(proxy.name)}`
         }
         break
       case 'anytls':
@@ -2174,7 +2170,7 @@ const PROXY_PARSERS = (() => {
               transportHost = parsedHost
             }
             // eslint-disable-next-line no-empty
-          } catch (e) {}
+          } catch (e) { }
           let transportPath = params.path
 
           // 补上默认 path
@@ -3317,13 +3313,21 @@ ${list}`
 
 /**
  * sub store 节点转换入口
+ * @param {Request} request - Cloudflare Worker 请求对象
+ * @param {Object} env - 环境变量对象
+ * @returns {Response} - 返回转换后的节点信息
+ * @description
+ * 该函数处理请求中的参数，获取目标平台和节点 URL 列表，
+ * 调用 checkAndRun 函数进行节点转换，并返回转换后的结果。
+ * 如果参数不完整或转换失败，将返回相应的错误信息。
+ * 支持的目标平台包括：singbox、mihomo、v2ray 等。
  */
 export default {
   async fetch(request, env) {
     const url = new URL(request.url)
     const target = url.searchParams.get('target')
     const inputnode = url.searchParams.get('url')
-    const nodeArray = inputnode ? inputnode.split(/[|,]/) : []; 
+    const nodeArray = inputnode ? inputnode.split(/[,]/) : [];
     if (!target || nodeArray.length === 0) {
       return new Response('ok', { status: 200 })
     }
@@ -3331,55 +3335,46 @@ export default {
     try {
       const result = await checkAndRun(nodeArray, target)
       if (Array.isArray(result?.proxies) && result?.proxies?.length > 0) {
-        return new Response(JSON.stringify({proxies: result.proxies}, null, 4), { status: 200, headers: { ...result.headers, 'Content-Type': 'application/json' }});
+        return new Response(JSON.stringify({ proxies: result.proxies }, null, 4), { status: 200, headers: { ...result.headers, 'Content-Type': 'application/json' } });
       } else if (Array.isArray(result?.outbounds) && result?.outbounds?.length > 0) {
-        return new Response(JSON.stringify({outbounds: result.outbounds}, null, 4), { status: 200, headers: { ...result.headers, 'Content-Type': 'application/json' }});
+        return new Response(JSON.stringify({ outbounds: result.outbounds }, null, 4), { status: 200, headers: { ...result.headers, 'Content-Type': 'application/json' } });
       } else {
-        return new Response(result.base64, { status: 200, headers: { ...result.randomHeaders, 'Content-Type': 'text/plain; charset=utf-8' }})
+        return new Response(result.base64, { status: 200, headers: { ...result.randomHeaders, 'Content-Type': 'text/plain; charset=utf-8' } })
       }
     } catch (error) {
       return new Response(`Error: ${error.message}`, { status: 500 })
     }
   }
 }
+function isBase64(str) {
+  return /^[A-Za-z0-9+/=]+$/.test(str) && str.length % 4 === 0;
+}
+function isValidURL(str) {
+  try {
+    const url = new URL(str);
+    return /^[a-zA-Z][a-zA-Z0-9+.-]*:$/.test(url.protocol);
+  } catch (err) {
+    return false;
+  }
+}
 const onRun = async (input, platform) => {
   let result = {};
-  // Clash 转换
-  if (input?.proxies) {
-    if (/singbox|sing-box|sfa/i.test(platform)) {
-      // Clash 转 Singbox
-      result.outbounds = ProxyUtils.produce(input.proxies, 'singbox', 'internal');
-    } else if (/meta|clash.meta|clash|clashverge|mihomo/i.test(platform)) {
-      // 保持Clash格式
-      result.proxies = ProxyUtils.produce(input.proxies, 'mihomo', 'internal');
-    } else {
-      // clash 转 base64 
-      result.base64 = ProxyUtils.produce(input.proxies, 'v2ray', 'internal');
-    }
-  } else if (input?.outbounds) {
-    // Singbox转换
-    if (/singbox|sing-box|sfa/i.test(platform)) {
-      // 保持Singbox格式
-      result.outbounds = ProxyUtils.produce(input.outbounds, 'singbox', 'internal');
-    } else if (/meta|clash.meta|clash|clashverge|mihomo/i.test(platform)) {
-      // singbox 转 clash 
-      result.outbounds = ProxyUtils.produce(input.outbounds, 'mihomo', 'internal');
-    } else {
-      // Singbox 转 base64
-      result.base64 = ProxyUtils.produce(input.outbounds, 'v2ray', 'internal');
-    }
-  } else {
-    const mihomo_proxies = ProxyUtils.parse(input);
-    if (/singbox|sing-box|sfa/i.test(platform)) {
-      result.outbounds = ProxyUtils.produce(mihomo_proxies, 'singbox', 'internal');
-    } else if (/meta|clash.meta|clash|clashverge|mihomo/i.test(platform)) {
-      result.proxies = ProxyUtils.produce(mihomo_proxies, 'mihomo', 'internal');
-    } else {
-      result.base64 = ProxyUtils.produce(mihomo_proxies, 'v2ray', 'internal');
-    }
+  let proxies = input?.proxies;
+  if (!proxies && (isBase64(input) || isValidURL(input))) {
+    proxies = ProxyUtils.parse(input);
+  }
+  if (proxies) {
+    const typeMap = {
+      singbox: { key: 'outbounds', format: 'singbox' },
+      mihomo: { key: 'proxies', format: 'mihomo' },
+      default: { key: 'base64', format: 'v2ray' },
+    };
+    const { key, format } = typeMap[platform] || typeMap.default;
+    result[key] = ProxyUtils.produce(proxies, format, 'internal');
   }
   return result;
-}
+};
+
 
 async function checkAndRun(inputs, platform) {
   const mergedResults = {
@@ -3390,19 +3385,18 @@ async function checkAndRun(inputs, platform) {
   };
 
   for (const input of inputs) {
-    let result;
-    
-    if (typeof input === 'string' && (input.startsWith('http://') || input.startsWith('https://'))) {
-      try {
-        const response = await fetchResponse(input, 'sub-store-node/v2ray');
+    let result, response;
+    try {
+      response = await fetchResponse(input, 'sub-store-node/clash');
+      if (response.data?.proxies) {
         mergedResults.headers.push(response.headers);
-        result = await onRun(response.data, platform);
-      } catch (error) {
-        console.error('Error while fetching URL:', error);
-        result = await onRun(input, platform); // 捕获异常时传入原始 input
+      } else {
+        response = await fetchResponse(input, 'sub-store-node/clash');
       }
-    } else {
-      result = await onRun(input, platform); // 如果不是 http 或 https URL，直接传入
+      result = await onRun(response.data, platform);
+    } catch (error) {
+      $.error('Error while fetching URL:', error);
+      result = await onRun(input, platform);
     }
 
     // 合并返回结果
@@ -3418,67 +3412,67 @@ async function checkAndRun(inputs, platform) {
     return { proxies: mergedResults.proxies, headers: randomHeaders };
   } else if (Array.isArray(mergedResults.outbounds) && mergedResults.outbounds.length > 0) {
     return { outbounds: mergedResults.outbounds, headers: randomHeaders };
-  } else{
+  } else {
     return { base64: mergedResults.base64, headers: randomHeaders };
   }
 }
 async function fetchResponse(url, userAgent) {
-    let response;
-    try {
-        response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'User-Agent': userAgent
-            }
-        });
-    } catch {
-        return true
-    }
-    // 直接使用 Object.fromEntries 转换 headers
-    const headersObj = Object.fromEntries(response.headers.entries());
-    // 替换非法 Content-Disposition 字段Add commentMore actions
-    const sanitizedCD = sanitizeContentDisposition(response.headers);
-    if (sanitizedCD) {
-        headersObj["content-disposition"] = sanitizedCD;
-    }
-    // 获取响应体的文本内容
-    const textData = await response.text();
+  let response;
+  try {
+    response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'User-Agent': userAgent
+      }
+    });
+  } catch {
+    return true
+  }
+  // 直接使用 Object.fromEntries 转换 headers
+  const headersObj = Object.fromEntries(response.headers.entries());
+  // 替换非法 Content-Disposition 字段Add commentMore actions
+  const sanitizedCD = sanitizeContentDisposition(response.headers);
+  if (sanitizedCD) {
+    headersObj["content-disposition"] = sanitizedCD;
+  }
+  // 获取响应体的文本内容
+  const textData = await response.text();
 
-    let jsonData;
+  let jsonData;
+  try {
+    jsonData = safeLoad(textData, { maxAliasCount: -1, merge: true });
+  } catch (e) {
     try {
-        jsonData = safeLoad(textData, { maxAliasCount: -1, merge: true });
-    } catch (e) {
-        try {
-            jsonData = JSON.parse(textData);
-        } catch (yamlError) {
-            // 若YAML解析也失败，保留原始文本
-            jsonData = textData;
-        }
+      jsonData = JSON.parse(textData);
+    } catch (yamlError) {
+      // 若YAML解析也失败，保留原始文本
+      jsonData = textData;
     }
-    return {
-        status: response.status,
-        headers: headersObj,
-        data: jsonData
-    }
+  }
+  return {
+    status: response.status,
+    headers: headersObj,
+    data: jsonData
+  }
 }
 function sanitizeContentDisposition(headers) {
-    const contentDisposition = headers.get("Content-Disposition") || headers.get("content-disposition");
+  const contentDisposition = headers.get("Content-Disposition") || headers.get("content-disposition");
 
-    if (!contentDisposition) return null;
+  if (!contentDisposition) return null;
 
-    const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+  const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
 
-    if (!filenameMatch) return null;
+  if (!filenameMatch) return null;
 
-    const originalFilename = filenameMatch[1];
+  const originalFilename = filenameMatch[1];
 
-    // 检查是否含中文（或非 ASCII）
-    const isNonAscii = /[^\x00-\x7F]/.test(originalFilename);
-    if (!isNonAscii) return contentDisposition; // 不含中文，保持原样
+  // 检查是否含中文（或非 ASCII）
+  const isNonAscii = /[^\x00-\x7F]/.test(originalFilename);
+  if (!isNonAscii) return contentDisposition; // 不含中文，保持原样
 
-    // 使用 fallback ASCII 名 + filename*=UTF-8''xxx 形式替换
-    const fallback = "download.json";
-    const encoded = encodeURIComponent(originalFilename);
+  // 使用 fallback ASCII 名 + filename*=UTF-8''xxx 形式替换
+  const fallback = "download.json";
+  const encoded = encodeURIComponent(originalFilename);
 
-    return `attachment; filename="${fallback}"; filename*=UTF-8''${encoded}`;
+  return `attachment; filename="${fallback}"; filename*=UTF-8''${encoded}`;
 }

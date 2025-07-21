@@ -3362,18 +3362,24 @@ export default {
 
 const onRun = async (input, platform) => {
   let result = {};
+  
+  // 如果没有 proxies，则解析并重新赋值
   if (!input?.proxies) {
-    input.proxies = ProxyUtils.parse(input);
+    input = { proxies: ProxyUtils.parse(input) };
   }
+
+  // 确保 proxies 存在
   if (input.proxies) {
     const typeMap = {
       singbox: { key: 'outbounds', format: 'singbox' },
       mihomo: { key: 'proxies', format: 'mihomo' },
       default: { key: 'base64', format: 'v2ray' },
     };
+
     const { key, format } = typeMap[platform] || typeMap.default;
     result[key] = ProxyUtils.produce(input.proxies, format, 'internal');
   }
+  
   return result;
 };
 
@@ -3390,12 +3396,28 @@ async function checkAndRun(inputs, platform) {
     try {
       const response = await fetchResponse(input, 'clash.mate');
       const data = response?.data ?? response; // 如果没有 data 字段，使用 response 本身
+      let result = {};
       if (data) {
+        const proxiesData = isProxies(data);
         mergedResults.headers.push(response.headers);
-        return await onRun(data, platform);
+        if (proxiesData?.proxies) {
+          result = await onRun(proxiesData, platform);
+        } else if (isBase64(data)) {
+          result = await onRun(data, platform);
+        } else if (isValidURL(data)) {
+          const splitData = data.split(/[\n\s]/);
+          const resultsArray = await Promise.all(splitData.map(item => onRun(item, platform)));
+          // 合并所有结果
+          for (const res of resultsArray) {
+            for (const [key, value] of Object.entries(res)) {
+              if (!result[key]) result[key] = [];
+              result[key] = result[key].concat(value);
+            }
+          }
+        }
       }
+      return result
     } catch (error) {
-      $.error('Error while fetching URL:', error);
       return await onRun(input, platform);
     }
   };
@@ -3403,7 +3425,6 @@ async function checkAndRun(inputs, platform) {
   // 遍历所有输入
   for (const input of inputs) {
     const result = await processInput(input);
-
     // 合并返回结果
     if (result?.proxies) mergedResults.proxies.push(...result.proxies);
     if (result?.outbounds) mergedResults.outbounds.push(...result.outbounds);
@@ -3444,22 +3465,10 @@ async function fetchResponse(url, userAgent) {
   }
   // 获取响应体的文本内容
   const textData = await response.text();
-
-  let jsonData;
-  try {
-    jsonData = safeLoad(textData, { maxAliasCount: -1, merge: true });
-  } catch (e) {
-    try {
-      jsonData = JSON.parse(textData);
-    } catch (yamlError) {
-      // 若YAML解析也失败，保留原始文本
-      jsonData = textData;
-    }
-  }
   return {
     status: response.status,
     headers: headersObj,
-    data: jsonData
+    data: textData
   }
 }
 function sanitizeContentDisposition(headers) {
@@ -3482,4 +3491,33 @@ function sanitizeContentDisposition(headers) {
   const encoded = encodeURIComponent(originalFilename);
 
   return `attachment; filename="${fallback}"; filename*=UTF-8''${encoded}`;
+}
+function isBase64(str) {
+  return /^[A-Za-z0-9+/=]+$/.test(str) && str.length % 4 === 0;
+}
+function isValidURL(str) {
+  try {
+    const url = new URL(str);
+    return /^[a-zA-Z][a-zA-Z0-9+.-]*:$/.test(url.protocol);
+  } catch (err) {
+    return false;
+  }
+}
+function isProxies(textData) {
+  let jsonData = {};
+
+  try {
+    // 使用 YAML 解析文本数据
+    const data = safeLoad(textData, { maxAliasCount: -1, merge: true });
+    // 如果存在 proxies 字段，则返回该字段数据
+    if (data?.proxies) {
+      jsonData.proxies = data.proxies;  // 只返回 proxies 部分
+    }
+
+  } catch {
+    // 如果解析失败，返回带有空数组的 proxies
+    return jsonData;
+  }
+
+  return jsonData;
 }

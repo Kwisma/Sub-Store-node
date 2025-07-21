@@ -3344,15 +3344,20 @@ export default {
         }
       );
     }
-
+    const isBrowser = /Mozilla|Chrome|Safari|Edge|Opera|Firefox/i.test(request.headers.get('User-Agent'));
     try {
       const result = await checkAndRun(nodeArray, target)
+      const headers = new Headers(result.headers);
+      headers.set('Content-Type', 'application/json; charset=utf-8');
+      if (isBrowser) {
+        headers.set('Content-Disposition', 'inline');
+      }
       if (Array.isArray(result?.proxies) && result?.proxies?.length > 0) {
-        return new Response(JSON.stringify({ proxies: result.proxies }, null, 4), { status: 200, headers: { ...result.headers, 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ proxies: result.proxies }, null, 4), { status: 200, headers });
       } else if (Array.isArray(result?.outbounds) && result?.outbounds?.length > 0) {
-        return new Response(JSON.stringify({ outbounds: result.outbounds }, null, 4), { status: 200, headers: { ...result.headers, 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ outbounds: result.outbounds }, null, 4), { status: 200, headers });
       } else {
-        return new Response(result.base64, { status: 200, headers: { ...result.headers, 'Content-Type': 'text/plain; charset=utf-8' } })
+        return new Response(result.base64, { status: 200, headers })
       }
     } catch (error) {
       return new Response(`Error: ${error.message}`, { status: 500 })

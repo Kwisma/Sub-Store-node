@@ -3313,61 +3313,155 @@ ${list}`
 
 /**
  * sub store 节点转换入口
- * @param {Request} request - Cloudflare Worker 请求对象
- * @param {Object} env - 环境变量对象
- * @returns {Response} - 返回转换后的节点信息
- * @description
- * 该函数处理请求中的参数，获取目标平台和节点 URL 列表，
- * 调用 checkAndRun 函数进行节点转换，并返回转换后的结果。
- * 如果参数不完整或转换失败，将返回相应的错误信息。
- * 支持的目标平台包括：singbox、mihomo、v2ray 等。
  */
 export default {
-  async fetch(request, env) {
-    const url = new URL(request.url)
-    let  target = url.searchParams.get('target')
-    const inputnode = url.searchParams.get('url')
-    const nodeArray = inputnode ? inputnode.split(/[,]/) : [];
-    if (/meta|clash.meta|clash|clashverge|mihomo/i.test(target)) target = 'mihomo';
-    if (/singbox|sing-box|sfa/i.test(target)) target = 'singbox';
-    if (!target || nodeArray.length === 0) {
-      return new Response(
-        JSON.stringify({
-          message: '这是一个基于 cloudflare pagers 的 sub-store 节点转换工具，仅转换节点用',
-          usage: {
-            target: '输出生成的文件类型，singbox 或 mihomo 或 v2ray',
-            url: '输入编码后的订阅链接，多个订阅可用 , 分割',
-            example: '/?target=v2ray&url=UrlEncode(编码后的订阅)',
-          },
-        }, null, 4),
-        {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
-    }
-    const isBrowser = /Mozilla|Chrome|Safari|Edge|Opera|Firefox/i.test(request.headers.get('User-Agent'));
+  async fetch(request) {
     try {
-      const result = await checkAndRun(nodeArray, target)
-      const headers = new Headers(result.headers);
-      headers.set('Content-Type', 'application/json; charset=utf-8');
-      if (isBrowser) {
-        headers.set('Content-Disposition', 'inline');
+      const { target, nodeArray } = parseRequestParams(request);
+      
+      if (!target || nodeArray.length === 0) {
+        return renderUsageInstructions();
       }
-      if (Array.isArray(result?.proxies) && result?.proxies?.length > 0) {
-        return new Response(JSON.stringify({ proxies: result.proxies }, null, 4), { status: 200, headers });
-      } else if (Array.isArray(result?.outbounds) && result?.outbounds?.length > 0) {
-        return new Response(JSON.stringify({ outbounds: result.outbounds }, null, 4), { status: 200, headers });
-      } else {
-        return new Response(result.base64, { status: 200, headers })
-      }
+      
+      const result = await processNodeConversion(nodeArray, target, request);
+      return formatResponse(result, request);
+      
     } catch (error) {
-      return new Response(`Error: ${error.message}`, { status: 500 })
+      return new Response(`Error: ${error.message}`, { status: 500 });
     }
+  }
+};
+
+/**
+ * 解析请求参数
+ * @param {Request} request 
+ * @returns {Object} 包含target和nodeArray的对象
+ */
+function parseRequestParams(request) {
+  const url = new URL(request.url);
+  let target = url.searchParams.get('target');
+  const inputnode = url.searchParams.get('url');
+  const nodeArray = inputnode ? inputnode.split(/[,]/) : [];
+  
+  // 标准化目标类型
+  if (/meta|clash.meta|clash|clashverge|mihomo/i.test(target)) target = 'mihomo';
+  if (/singbox|sing-box|sfa/i.test(target)) target = 'singbox';
+  
+  return { target, nodeArray };
+}
+
+/**
+ * 返回使用说明
+ * @returns {Response} 包含使用说明的JSON响应
+ */
+function renderUsageInstructions() {
+  return new Response(
+    JSON.stringify({
+      message: '这是一个基于 cloudflare pagers 的 sub-store 节点转换工具，仅转换节点用',
+      usage: {
+        target: '输出生成的文件类型，singbox 或 mihomo 或 v2ray',
+        url: '输入编码后的订阅链接，多个订阅可用 , 分割',
+        example: '/?target=v2ray&url=UrlEncode(编码后的订阅)',
+      },
+    }, null, 4),
+    {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }
+  );
+}
+
+/**
+ * 处理节点转换流程
+ * @param {Array} nodeArray - 节点URL数组
+ * @param {string} target - 目标格式
+ * @param {Request} request - 原始请求对象
+ * @returns {Object} 转换结果
+ */
+async function processNodeConversion(nodeArray, target, request) {
+  const results = {
+    proxies: [],
+    outbounds: [],
+    base64: '',
+    headers: []
+  };
+
+  const processedResults = await Promise.all(
+    nodeArray.map(input => processSingleInput(input, target))
+  );
+
+  // 合并所有结果
+  processedResults.forEach(result => {
+    if (result?.proxies) results.proxies.push(...result.proxies);
+    if (result?.outbounds) results.outbounds.push(...result.outbounds);
+    if (result?.base64) results.base64 += result.base64;
+    if (result?.headers) results.headers.push(result.headers);
+  });
+
+  // 随机选择一个headers
+  const randomHeaders = results.headers.length > 0 
+    ? results.headers[Math.floor(Math.random() * results.headers.length)] 
+    : undefined;
+
+  return { ...results, headers: randomHeaders };
+}
+
+/**
+ * 处理单个输入
+ * @param {string} input - 单个节点URL或数据
+ * @param {string} platform - 目标平台
+ * @returns {Object} 处理结果
+ */
+async function processSingleInput(input, platform) {
+  try {
+    let data;
+    let result = {};
+    const isHttpInput = /^https?:\/\//i.test(input);
+    
+    if (isHttpInput) {
+      const response = await fetchResponse(input, 'clash.mate');
+      data = response?.data ?? response;
+      result.headers = response.headers;
+    } else {
+      data = input;
+    }
+
+    if (!data) return result;
+
+    // 根据数据类型处理
+    const proxiesData = isProxies(data);
+    if (proxiesData?.proxies) {
+      result = await convertProxies(proxiesData, platform);
+    } else if (isBase64(data)) {
+      result = await convertProxies(data, platform);
+    } else if (isValidURL(data)) {
+      const splitData = data.split(/[\n\s]/);
+      const resultsArray = await Promise.all(
+        splitData.map(item => convertProxies(item, platform))
+      );
+      
+      // 合并结果
+      resultsArray.forEach(res => {
+        Object.entries(res).forEach(([key, value]) => {
+          result[key] = (result[key] || []).concat(value);
+        });
+      });
+    }
+    
+    return result;
+  } catch (error) {
+    console.error(`Error processing input: ${input}`, error);
+    return await convertProxies(input, platform);
   }
 }
 
-const onRun = async (input, platform) => {
+/**
+ * 转换代理数据到目标格式
+ * @param {Object|string} input - 输入数据
+ * @param {string} platform - 目标平台
+ * @returns {Object} 转换结果
+ */
+async function convertProxies(input, platform) {
   let result = {};
   
   // 如果没有 proxies，则解析并重新赋值
@@ -3388,133 +3482,114 @@ const onRun = async (input, platform) => {
   }
   
   return result;
-};
-async function checkAndRun(inputs, platform) {
-  const results = {
-    proxies: [],
-    outbounds: [],
-    base64: '',
-    headers: []
-  };
-
-  // 处理单个输入的函数
-  const processInput = async (input) => {
-    try {
-      let data;
-      let result = {};
-      
-      // 判断 input 是否是 http 或 https 协议
-      const isHttpInput = /^https?:\/\//i.test(input);
-      
-      if (isHttpInput) {
-        const response = await fetchResponse(input, 'clash.mate');
-        data = response?.data ?? response;
-        results.headers.push(response.headers);
-      } else {
-        data = input;
-      }
-
-      if (!data) return result;
-
-      // 检查数据类型并处理
-      const proxiesData = isProxies(data);
-      if (proxiesData?.proxies) {
-        result = await onRun(proxiesData, platform);
-      } else if (isBase64(data)) {
-        result = await onRun(data, platform);
-      } else if (isValidURL(data)) {
-        const splitData = data.split(/[\n\s]/);
-        const resultsArray = await Promise.all(splitData.map(item => onRun(item, platform)));
-        
-        // 合并所有结果
-        resultsArray.forEach(res => {
-          Object.entries(res).forEach(([key, value]) => {
-            result[key] = (result[key] || []).concat(value);
-          });
-        });
-      }
-      
-      return result;
-    } catch (error) {
-      console.error(`Error processing input: ${input}`, error);
-      return await onRun(input, platform);
-    }
-  };
-
-  // 使用 Promise.all 并行处理输入
-  const processedResults = await Promise.all(inputs.map(processInput));
-
-  // 合并所有结果
-  processedResults.forEach(result => {
-    if (result?.proxies) results.proxies.push(...result.proxies);
-    if (result?.outbounds) results.outbounds.push(...result.outbounds);
-    if (result?.base64) results.base64 += result.base64;
-  });
-
-  // 随机选择一个 headers
-  const randomHeaders = results.headers.length > 0 ? results.headers[Math.floor(Math.random() * results.headers.length)] : undefined;
-
-  // 返回合并后的结果
-  if (results.proxies.length > 0) {
-    return { proxies: results.proxies, headers: randomHeaders };
-  }
-  if (results.outbounds.length > 0) {
-    return { outbounds: results.outbounds, headers: randomHeaders };
-  }
-  return { base64: results.base64, headers: randomHeaders };
 }
 
+/**
+ * 格式化最终响应
+ * @param {Object} result - 处理结果
+ * @param {Request} request - 原始请求
+ * @returns {Response} 格式化后的响应
+ */
+function formatResponse(result, request) {
+  const isBrowser = /Mozilla|Chrome|Safari|Edge|Opera|Firefox/i.test(
+    request.headers.get('User-Agent')
+  );
+  
+  const headers = new Headers(result.headers);
+  headers.set('Content-Type', 'application/json; charset=utf-8');
+  
+  if (isBrowser) {
+    headers.set('Content-Disposition', 'inline');
+  }
+
+  if (Array.isArray(result?.proxies) && result?.proxies?.length > 0) {
+    return new Response(JSON.stringify({ proxies: result.proxies }, null, 4), { 
+      status: 200, 
+      headers 
+    });
+  } 
+  
+  if (Array.isArray(result?.outbounds) && result?.outbounds?.length > 0) {
+    return new Response(JSON.stringify({ outbounds: result.outbounds }, null, 4), { 
+      status: 200, 
+      headers 
+    });
+  }
+  
+  return new Response(result.base64, { status: 200, headers });
+}
+
+// ============== 工具函数 ==============
+
+/**
+ * 获取远程响应
+ * @param {string} url - 请求URL
+ * @param {string} userAgent - User-Agent头
+ * @returns {Object} 响应数据
+ */
 async function fetchResponse(url, userAgent) {
   let response;
   try {
     response = await fetch(url, {
       method: 'GET',
-      headers: {
-        'User-Agent': userAgent
-      }
+      headers: { 'User-Agent': userAgent }
     });
   } catch {
-    return url
+    return url;
   }
-  // 直接使用 Object.fromEntries 转换 headers
+  
   const headersObj = Object.fromEntries(response.headers.entries());
-  // 替换非法 Content-Disposition 字段Add commentMore actions
   const sanitizedCD = sanitizeContentDisposition(response.headers);
+  
   if (sanitizedCD) {
     headersObj["content-disposition"] = sanitizedCD;
   }
-  // 获取响应体的文本内容
-  const textData = await response.text();
+  
   return {
     status: response.status,
     headers: headersObj,
-    data: textData
-  }
+    data: await response.text()
+  };
 }
+
+/**
+ * 清理Content-Disposition头
+ * @param {Headers} headers - 响应头
+ * @returns {string|null} 清理后的内容
+ */
 function sanitizeContentDisposition(headers) {
   const contentDisposition = headers.get("Content-Disposition") || headers.get("content-disposition");
 
   if (!contentDisposition) return null;
 
   const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
-
   if (!filenameMatch) return null;
 
   const originalFilename = filenameMatch[1];
-
-  // 检查是否含中文（或非 ASCII）
   const isNonAscii = /[^\x00-\x7F]/.test(originalFilename);
-  if (!isNonAscii) return contentDisposition; // 不含中文，保持原样
+  
+  if (!isNonAscii) return contentDisposition;
 
-  // 使用 fallback ASCII 名 + filename*=UTF-8''xxx 形式替换
   const fallback = "download.json";
   const encoded = encodeURIComponent(originalFilename);
 
   return `attachment; filename="${fallback}"; filename*=UTF-8''${encoded}`;
 }
+
+/**
+ * 检查是否是Base64字符串
+ * @param {string} str - 待检查字符串
+ * @returns {boolean} 是否是Base64
+ */
 function isBase64(str) {
   return /^[A-Za-z0-9+/=]+$/.test(str) && str.length % 4 === 0;
 }
+
+/**
+ * 检查是否是有效URL
+ * @param {string} str - 待检查字符串
+ * @returns {boolean} 是否是有效URL
+ */
 function isValidURL(str) {
   try {
     const url = new URL(str);
@@ -3523,19 +3598,21 @@ function isValidURL(str) {
     return false;
   }
 }
+
+/**
+ * 检查并提取代理数据
+ * @param {string} textData - 文本数据
+ * @returns {Object} 代理数据
+ */
 function isProxies(textData) {
   let jsonData = {};
 
   try {
-    // 使用 YAML 解析文本数据
     const data = safeLoad(textData, { maxAliasCount: -1, merge: true });
-    // 如果存在 proxies 字段，则返回该字段数据
     if (data?.proxies) {
-      jsonData.proxies = data.proxies;  // 只返回 proxies 部分
+      jsonData.proxies = data.proxies;
     }
-
   } catch {
-    // 如果解析失败，返回带有空数组的 proxies
     return jsonData;
   }
 

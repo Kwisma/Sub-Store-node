@@ -132,14 +132,14 @@ const PROXY_PRODUCERS = {
 }
 
 const $ = {
-  info: (msg) => {
-    console.log('[info]', msg)
+  info: (...msg) => {
+    console.log('[info]', ...msg)
   },
-  error: (msg) => {
-    console.log('[error]', msg)
+  error: (...msg) => {
+    console.log('[error]', ...msg)
   },
-  log: (msg) => {
-    console.log('[log]', msg)
+  log: (...msg) => {
+    console.log('[log]', ...msg)
   }
 }
 
@@ -3413,12 +3413,11 @@ async function checkAndRun(inputs, platform) {
           const splitData = data.split(/[\n\s]/);
           const resultsArray = await Promise.all(splitData.map(item => onRun(item, platform)));
           // 合并所有结果
-          for (const res of resultsArray) {
-            for (const [key, value] of Object.entries(res)) {
-              if (!result[key]) result[key] = [];
-              result[key] = result[key].concat(value);
-            }
-          }
+          resultsArray.forEach(res => {
+            Object.entries(res).forEach(([key, value]) => {
+              result[key] = (result[key] || []).concat(value);
+            });
+          });
         }
       }
       return result

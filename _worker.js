@@ -3389,9 +3389,8 @@ const onRun = async (input, platform) => {
   
   return result;
 };
-
 async function checkAndRun(inputs, platform) {
-  const mergedResults = {
+  const results = {
     proxies: [],
     outbounds: [],
     base64: '',
@@ -3401,53 +3400,68 @@ async function checkAndRun(inputs, platform) {
   // 处理单个输入的函数
   const processInput = async (input) => {
     try {
-      const response = await fetchResponse(input, 'clash.mate');
-      const data = response?.data ?? response; // 如果没有 data 字段，使用 response 本身
+      let data;
       let result = {};
-      if (data) {
-        const proxiesData = isProxies(data);
-        mergedResults.headers.push(response.headers);
-        if (proxiesData?.proxies) {
-          result = await onRun(proxiesData, platform);
-        } else if (isBase64(data)) {
-          result = await onRun(data, platform);
-        } else if (isValidURL(data)) {
-          const splitData = data.split(/[\n\s]/);
-          const resultsArray = await Promise.all(splitData.map(item => onRun(item, platform)));
-          // 合并所有结果
-          resultsArray.forEach(res => {
-            Object.entries(res).forEach(([key, value]) => {
-              result[key] = (result[key] || []).concat(value);
-            });
-          });
-        }
+      
+      // 判断 input 是否是 http 或 https 协议
+      const isHttpInput = /^https?:\/\//i.test(input);
+      
+      if (isHttpInput) {
+        const response = await fetchResponse(input, 'clash.mate');
+        data = response?.data ?? response;
+        results.headers.push(response.headers);
+      } else {
+        data = input;
       }
-      return result
+
+      if (!data) return result;
+
+      // 检查数据类型并处理
+      const proxiesData = isProxies(data);
+      if (proxiesData?.proxies) {
+        result = await onRun(proxiesData, platform);
+      } else if (isBase64(data)) {
+        result = await onRun(data, platform);
+      } else if (isValidURL(data)) {
+        const splitData = data.split(/[\n\s]/);
+        const resultsArray = await Promise.all(splitData.map(item => onRun(item, platform)));
+        
+        // 合并所有结果
+        resultsArray.forEach(res => {
+          Object.entries(res).forEach(([key, value]) => {
+            result[key] = (result[key] || []).concat(value);
+          });
+        });
+      }
+      
+      return result;
     } catch (error) {
+      console.error(`Error processing input: ${input}`, error);
       return await onRun(input, platform);
     }
   };
 
-  // 遍历所有输入
-  for (const input of inputs) {
-    const result = await processInput(input);
-    // 合并返回结果
-    if (result?.proxies) mergedResults.proxies.push(...result.proxies);
-    if (result?.outbounds) mergedResults.outbounds.push(...result.outbounds);
-    if (result?.base64) mergedResults.base64 += result.base64;
-  }
+  // 使用 Promise.all 并行处理输入
+  const processedResults = await Promise.all(inputs.map(processInput));
+
+  // 合并所有结果
+  processedResults.forEach(result => {
+    if (result?.proxies) results.proxies.push(...result.proxies);
+    if (result?.outbounds) results.outbounds.push(...result.outbounds);
+    if (result?.base64) results.base64 += result.base64;
+  });
 
   // 随机选择一个 headers
-  const randomHeaders = mergedResults.headers[Math.floor(Math.random() * mergedResults.headers.length)];
+  const randomHeaders = results.headers.length > 0 ? results.headers[Math.floor(Math.random() * results.headers.length)] : undefined;
 
   // 返回合并后的结果
-  if (mergedResults.proxies.length > 0) {
-    return { proxies: mergedResults.proxies, headers: randomHeaders };
-  } else if (mergedResults.outbounds.length > 0) {
-    return { outbounds: mergedResults.outbounds, headers: randomHeaders };
-  } else {
-    return { base64: mergedResults.base64, headers: randomHeaders };
+  if (results.proxies.length > 0) {
+    return { proxies: results.proxies, headers: randomHeaders };
   }
+  if (results.outbounds.length > 0) {
+    return { outbounds: results.outbounds, headers: randomHeaders };
+  }
+  return { base64: results.base64, headers: randomHeaders };
 }
 
 async function fetchResponse(url, userAgent) {

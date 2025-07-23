@@ -133,13 +133,13 @@ const PROXY_PRODUCERS = {
 
 const $ = {
   info: (...msg) => {
-    console.log('[info]', ...msg)
+    console.log(`[INFO]`, ...msg)
   },
   error: (...msg) => {
-    console.log('[error]', ...msg)
+    console.log(`[ERROR]`, ...msg)
   },
   log: (...msg) => {
-    console.log('[log]', ...msg)
+    console.log(`[LOG]`, ...msg)
   }
 }
 
@@ -429,15 +429,16 @@ function ClashMeta_Producer() {
             proxy['h2-opts'].headers.host = [host]
           }
         }
+
         if (proxy.network === 'ws') {
-          const wsPath = proxy['ws-opts']?.path;
-          const reg = /^(.*?)(?:\?ed=(\d+))?$/;
+          const wsPath = proxy['ws-opts']?.path
+          const reg = /^(.*?)(?:\?ed=(\d+))?$/
           // eslint-disable-next-line no-unused-vars
-          const [_, path = '', ed = ''] = reg.exec(wsPath);
-          proxy['ws-opts'].path = path;
+          const [_, path = '', ed = ''] = reg.exec(wsPath)
+          proxy['ws-opts'].path = path
           if (ed !== '') {
-            proxy['ws-opts']['early-data-header-name'] = 'Sec-WebSocket-Protocol';
-            proxy['ws-opts']['max-early-data'] = parseInt(ed, 10);
+            proxy['ws-opts']['early-data-header-name'] = 'Sec-WebSocket-Protocol'
+            proxy['ws-opts']['max-early-data'] = parseInt(ed, 10)
           }
         }
 
@@ -547,7 +548,14 @@ function Singbox_Producer() {
   const wsParser = (proxy, parsedProxy) => {
     const transport = { type: 'ws', headers: {} }
     if (proxy['ws-opts']) {
-      const { path: wsPath = '', headers: wsHeaders = {} } = proxy['ws-opts']
+      const {
+        path: wsPath = '',
+        headers: wsHeaders = {},
+        'max-early-data': max_early_data,
+        'early-data-header-name': early_data_header_name
+      } = proxy['ws-opts']
+      transport.early_data_header_name = early_data_header_name
+      transport.max_early_data = parseInt(max_early_data, 10)
       if (wsPath !== '') transport.path = `${wsPath}`
       if (Object.keys(wsHeaders).length > 0) {
         const headers = {}
@@ -1323,8 +1331,9 @@ function URI_Producer() {
         break
       case 'ss':
         const userinfo = `${proxy.cipher}:${proxy.password}`
-        result = `ss://${proxy.cipher?.startsWith('2022-blake3-') ? `${encodeURIComponent(proxy.cipher)}:${encodeURIComponent(proxy.password)}` : Base64.encode(userinfo)
-          }@${proxy.server}:${proxy.port}${proxy.plugin ? '/' : ''}`
+        result = `ss://${
+          proxy.cipher?.startsWith('2022-blake3-') ? `${encodeURIComponent(proxy.cipher)}:${encodeURIComponent(proxy.password)}` : Base64.encode(userinfo)
+        }@${proxy.server}:${proxy.port}${proxy.plugin ? '/' : ''}`
         if (proxy.plugin) {
           result += '?plugin='
           const opts = proxy['plugin-opts']
@@ -1352,8 +1361,9 @@ function URI_Producer() {
         break
       case 'ssr':
         result = `${proxy.server}:${proxy.port}:${proxy.protocol}:${proxy.cipher}:${proxy.obfs}:${Base64.encode(proxy.password)}/`
-        result += `?remarks=${Base64.encode(proxy.name)}${proxy['obfs-param'] ? '&obfsparam=' + Base64.encode(proxy['obfs-param']) : ''}${proxy['protocol-param'] ? '&protocolparam=' + Base64.encode(proxy['protocol-param']) : ''
-          }`
+        result += `?remarks=${Base64.encode(proxy.name)}${proxy['obfs-param'] ? '&obfsparam=' + Base64.encode(proxy['obfs-param']) : ''}${
+          proxy['protocol-param'] ? '&protocolparam=' + Base64.encode(proxy['protocol-param']) : ''
+        }`
         result = 'ssr://' + Base64.encode(result)
         break
       case 'vmess':
@@ -1564,10 +1574,11 @@ function URI_Producer() {
             trojanMode = `&mode=${encodeURIComponent(proxy._mode)}`
           }
         }
-        result = `trojan://${proxy.password}@${proxy.server}:${proxy.port}?sni=${encodeURIComponent(proxy.sni || proxy.server)}${proxy['skip-cert-verify'] ? '&allowInsecure=1' : ''
-          }${trojanTransport}${trojanAlpn}${trojanFp}${trojanSecurity}${trojanSid}${trojanPbk}${trojanSpx}${trojanMode}${trojanExtra}#${encodeURIComponent(
-            proxy.name
-          )}`
+        result = `trojan://${proxy.password}@${proxy.server}:${proxy.port}?sni=${encodeURIComponent(proxy.sni || proxy.server)}${
+          proxy['skip-cert-verify'] ? '&allowInsecure=1' : ''
+        }${trojanTransport}${trojanAlpn}${trojanFp}${trojanSecurity}${trojanSid}${trojanPbk}${trojanSpx}${trojanMode}${trojanExtra}#${encodeURIComponent(
+          proxy.name
+        )}`
         break
       case 'hysteria2':
         let hysteria2params = []
@@ -1670,8 +1681,9 @@ function URI_Producer() {
             }
           })
 
-          result = `tuic://${encodeURIComponent(proxy.uuid)}:${encodeURIComponent(proxy.password)}@${proxy.server}:${proxy.port
-            }?${tuicParams.join('&')}#${encodeURIComponent(proxy.name)}`
+          result = `tuic://${encodeURIComponent(proxy.uuid)}:${encodeURIComponent(proxy.password)}@${proxy.server}:${
+            proxy.port
+          }?${tuicParams.join('&')}#${encodeURIComponent(proxy.name)}`
         }
         break
       case 'anytls':
@@ -2170,7 +2182,7 @@ const PROXY_PARSERS = (() => {
               transportHost = parsedHost
             }
             // eslint-disable-next-line no-empty
-          } catch (e) { }
+          } catch (e) {}
           let transportPath = params.path
 
           // 补上默认 path
@@ -3357,6 +3369,7 @@ function parseRequestParams(request) {
 function renderUsageInstructions() {
   return new Response(
     JSON.stringify({
+      version: 'SubStore v2.19.91',
       message: '这是一个基于 cloudflare pagers 的 sub-store 节点转换工具，仅转换节点用',
       usage: {
         target: '输出生成的文件类型，singbox 或 mihomo 或 v2ray',

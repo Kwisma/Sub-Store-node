@@ -3469,7 +3469,7 @@ async function processSingleInput(input, platform) {
 }
 
 /**
- * 转换代理数据到目标格式
+ * 转换代理数据到目标格式并检查重复名称
  * @param {Object|string} input - 输入数据
  * @param {string} platform - 目标平台
  * @returns {Object} 转换结果
@@ -3485,13 +3485,54 @@ async function convertProxies(input, platform) {
   // 确保 proxies 存在
   if (input.proxies) {
     const typeMap = {
-      singbox: { key: 'outbounds', format: 'singbox' },
-      mihomo: { key: 'proxies', format: 'mihomo' },
+      singbox: { key: 'outbounds', format: 'singbox', nameField: 'tag' },
+      mihomo: { key: 'proxies', format: 'mihomo', nameField: 'name' },
       default: { key: 'base64', format: 'v2ray' },
     };
 
-    const { key, format } = typeMap[platform] || typeMap.default;
+    const { key, format, nameField } = typeMap[platform] || typeMap.default;
+    
+    // 生成原始结果
     result[key] = ProxyUtils.produce(input.proxies, format, 'internal');
+    
+    // 如果需要检查重复名称
+    if (nameField && Array.isArray(result[key])) {
+      const nameCount = new Map();
+      
+      // 统计每个名称出现的次数
+      result[key].forEach(item => {
+        const name = item[nameField];
+        nameCount.set(name, (nameCount.get(name) || 0) + 1);
+      });
+      
+      // 处理重复名称
+      result[key] = result[key].map((item, index) => {
+        const originalName = item[nameField];
+        
+        // 如果名称不重复，直接返回
+        if (nameCount.get(originalName) === 1) {
+          return item;
+        }
+        
+        // 处理重复名称
+        let newName = originalName;
+        let suffix = 1;
+        
+        // 查找可用的后缀
+        while (nameCount.has(`${originalName}_${suffix}`)) {
+          suffix++;
+        }
+        
+        newName = `${originalName}_${suffix}`;
+        nameCount.set(newName, 1); // 标记新名称为已使用
+        
+        // 创建新对象而不是修改原对象
+        return {
+          ...item,
+          [nameField]: newName
+        };
+      });
+    }
   }
   
   return result;

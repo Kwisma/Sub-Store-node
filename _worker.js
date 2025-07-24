@@ -3405,12 +3405,22 @@ async function processNodeConversion(nodeArray, target, request) {
     nodeArray.map(input => processSingleInput(input, target))
   );
 
+  const concatValues = (targetProp, sourceProp, separator = '') => {
+    if (sourceProp) {
+      if (Array.isArray(sourceProp)) {
+        results[targetProp] += sourceProp.filter(Boolean).join(separator);
+      } else {
+        results[targetProp] += sourceProp + separator;
+      }
+    }
+  };
+
   // 合并所有结果
   processedResults.forEach(result => {
     if (result?.proxies) results.proxies.push(...result.proxies);
     if (result?.outbounds) results.outbounds.push(...result.outbounds);
-    if (result?.base64) results.base64 += result.base64;
-    if (result?.v2ray) results.v2ray += result.v2ray + '\n';
+    concatValues('base64', result.base64);
+    concatValues('v2ray', result.v2ray, '\n');
     if (result?.headers) results.headers.push(result.headers);
   });
 

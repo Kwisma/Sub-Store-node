@@ -3469,7 +3469,7 @@ async function processSingleInput(input, platform) {
 }
 
 /**
- * 转换代理数据到目标格式并检查重复名称
+ * 转换代理数据到目标格式并处理重复名称和IPv6地址
  * @param {Object|string} input - 输入数据
  * @param {string} platform - 目标平台
  * @returns {Object} 转换结果
@@ -3484,58 +3484,99 @@ async function convertProxies(input, platform) {
 
   // 确保 proxies 存在
   if (input.proxies) {
-    const typeMap = {
+    const platformConfigs = {
       singbox: { key: 'outbounds', format: 'singbox', nameField: 'tag' },
       mihomo: { key: 'proxies', format: 'mihomo', nameField: 'name' },
       default: { key: 'base64', format: 'v2ray' },
     };
 
-    const { key, format, nameField } = typeMap[platform] || typeMap.default;
-    
-    // 生成原始结果
+    const { key, format, nameField } = platformConfigs[platform] || platformConfigs.default;
+
     result[key] = ProxyUtils.produce(input.proxies, format, 'internal');
     
-    // 如果需要检查重复名称
+    // 处理需要特殊处理的平台
     if (nameField && Array.isArray(result[key])) {
-      const nameCount = new Map();
-      
-      // 统计每个名称出现的次数
-      result[key].forEach(item => {
-        const name = item[nameField];
-        nameCount.set(name, (nameCount.get(name) || 0) + 1);
-      });
-      
-      // 处理重复名称
-      result[key] = result[key].map((item, index) => {
-        const originalName = item[nameField];
-        
-        // 如果名称不重复，直接返回
-        if (nameCount.get(originalName) === 1) {
-          return item;
-        }
-        
-        // 处理重复名称
-        let newName = originalName;
-        let suffix = 1;
-        
-        // 查找可用的后缀
-        while (nameCount.has(`${originalName}_${suffix}`)) {
-          suffix++;
-        }
-        
-        newName = `${originalName}_${suffix}`;
-        nameCount.set(newName, 1); // 标记新名称为已使用
-        
-        // 创建新对象而不是修改原对象
-        return {
-          ...item,
-          [nameField]: newName
-        };
-      });
+      result[key] = processProxyItems(result[key], nameField, platform);
     }
   }
   
   return result;
+}
+
+/**
+ * 处理代理项的特殊逻辑（去重和IPv6处理）
+ * @param {Array} items - 代理项数组
+ * @param {string} nameField - 名称字段名
+ * @param {string} platform - 目标平台
+ * @returns {Array} 处理后的代理项数组
+ */
+function processProxyItems(items, nameField, platform) {
+  const nameCount = new Map();
+  
+  // 统计每个名称出现的次数
+  items.forEach(item => {
+    const name = item[nameField];
+    nameCount.set(name, (nameCount.get(name) || 0) + 1);
+  });
+  
+  // 处理各项
+  return items.map(item => {
+    // 处理mihomo平台的IPv6地址
+    if (platform === 'mihomo' && item.server && isIPv6WithBrackets(item.server)) {
+      item = {
+        ...item,
+        server: removeIPv6Brackets(item.server)
+      };
+    }
+    
+    // 处理重复名称
+    const originalName = item[nameField];
+    if (nameCount.get(originalName) === 1) {
+      return item;
+    }
+    
+    return {
+      ...item,
+      [nameField]: generateUniqueName(originalName, nameCount)
+    };
+  });
+}
+
+/**
+ * 生成唯一名称
+ * @param {string} originalName - 原始名称
+ * @param {Map} nameCount - 名称计数Map
+ * @returns {string} 唯一名称
+ */
+function generateUniqueName(originalName, nameCount) {
+  let suffix = 1;
+  let newName = originalName;
+  
+  while (nameCount.has(`${originalName}-${suffix}`)) {
+    suffix++;
+  }
+  
+  newName = `${originalName}-${suffix}`;
+  nameCount.set(newName, 1);
+  return newName;
+}
+
+/**
+ * 检查是否是带括号的IPv6地址
+ * @param {string} address - 待检查地址
+ * @returns {boolean} 是否是带括号的IPv6
+ */
+function isIPv6WithBrackets(address) {
+  return /^\[[0-9a-fA-F:]+\]$/.test(address);
+}
+
+/**
+ * 去除IPv6地址的括号
+ * @param {string} address - IPv6地址
+ * @returns {string} 处理后的地址
+ */
+function removeIPv6Brackets(address) {
+  return address.replace(/^\[|\]$/g, '');
 }
 
 /**
@@ -3572,8 +3613,6 @@ function formatResponse(result, request) {
   
   return new Response(result.base64, { status: 200, headers });
 }
-
-// ============== 工具函数 ==============
 
 /**
  * 获取远程响应

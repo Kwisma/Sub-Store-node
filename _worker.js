@@ -126,9 +126,10 @@ const safeLoad = YAML.parse
 const URI = URI_Producer()
 
 const PROXY_PRODUCERS = {
-  v2ray: V2Ray_Producer(),
+  v2ray: URI_Producer(),
   mihomo: ClashMeta_Producer(),
-  singbox: Singbox_Producer()
+  singbox: Singbox_Producer(),
+  base64: V2Ray_Producer(),
 }
 
 const $ = {
@@ -3372,7 +3373,7 @@ function renderUsageInstructions() {
       version: 'SubStore v2.19.91',
       message: '这是一个基于 cloudflare pagers 的 sub-store 节点转换工具，仅转换节点用',
       usage: {
-        target: '输出生成的文件类型，singbox 或 mihomo 或 v2ray',
+        target: '输出类型：{singbox|mihomo|v2ray|base64}',
         url: '输入编码后的订阅链接，多个订阅可用 , 分割',
         example: '/?target=v2ray&url=UrlEncode(编码后的订阅)',
       },
@@ -3396,6 +3397,7 @@ async function processNodeConversion(nodeArray, target, request) {
     proxies: [],
     outbounds: [],
     base64: '',
+    v2ray: '',
     headers: []
   };
 
@@ -3408,6 +3410,7 @@ async function processNodeConversion(nodeArray, target, request) {
     if (result?.proxies) results.proxies.push(...result.proxies);
     if (result?.outbounds) results.outbounds.push(...result.outbounds);
     if (result?.base64) results.base64 += result.base64;
+    if (result?.v2ray) results.v2ray += result.v2ray + '\n';
     if (result?.headers) results.headers.push(result.headers);
   });
 
@@ -3487,7 +3490,8 @@ async function convertProxies(input, platform) {
     const platformConfigs = {
       singbox: { key: 'outbounds', format: 'singbox', nameField: 'tag' },
       mihomo: { key: 'proxies', format: 'mihomo', nameField: 'name' },
-      default: { key: 'base64', format: 'v2ray' },
+      v2ray: { key: 'v2ray', format: 'v2ray' },
+      default: { key: 'base64', format: 'base64' },
     };
 
     const { key, format, nameField } = platformConfigs[platform] || platformConfigs.default;
@@ -3611,7 +3615,15 @@ function formatResponse(result, request) {
     });
   }
   
-  return new Response(result.base64, { status: 200, headers });
+  if (result?.v2ray) {
+    return new Response(result.v2ray, { status: 200, headers });
+  }
+  
+  if (result?.base64) {
+    return new Response(result.base64, { status: 200, headers });
+  }
+  
+  return new Response({}, { status: 200, headers });
 }
 
 /**

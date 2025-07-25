@@ -3396,21 +3396,21 @@ async function processNodeConversion(nodeArray, target, request) {
   const results = {
     proxies: [],
     outbounds: [],
-    base64: '',
     v2ray: '',
+    base64: '',
     headers: []
   };
 
   const processedResults = await Promise.all(
     nodeArray.map(input => processSingleInput(input, target))
   );
-
-  const concatValues = (targetProp, sourceProp, separator = '') => {
+  
+  const concatValues = (targetProp, sourceProp) => {
     if (sourceProp) {
       if (Array.isArray(sourceProp)) {
-        results[targetProp] += sourceProp.filter(Boolean).join(separator);
+        results[targetProp] += sourceProp.filter(Boolean).join('\n') + '\n';
       } else {
-        results[targetProp] += sourceProp + separator;
+        results[targetProp] += sourceProp + '\n';
       }
     }
   };
@@ -3420,15 +3420,28 @@ async function processNodeConversion(nodeArray, target, request) {
     if (result?.proxies) results.proxies.push(...result.proxies);
     if (result?.outbounds) results.outbounds.push(...result.outbounds);
     concatValues('base64', result.base64);
-    concatValues('v2ray', result.v2ray, '\n');
+    concatValues('v2ray', result.v2ray);
     if (result?.headers) results.headers.push(result.headers);
   });
 
+  if (target === 'mihomo') {
+    results.proxies = processProxyItems(results.proxies, 'name');
+  } else if (target === 'singbox') {
+    results.outbounds = processProxyItems(results.outbounds, 'tag');
+  }
+
+  if (results.base64) {
+    results.base64 = btoa(unescape(encodeURIComponent(results.base64)));
+  }
   // 随机选择一个headers
   const randomHeaders = results.headers.length > 0 
     ? results.headers[Math.floor(Math.random() * results.headers.length)] 
     : undefined;
-
+  // 清理空字段
+  if (!results.proxies.length) delete results.proxies;
+  if (!results.outbounds.length) delete results.outbounds;
+  if (!results.v2ray) delete results.v2ray;
+  if (!results.headers.length) delete results.headers;
   return { ...results, headers: randomHeaders };
 }
 
@@ -3498,20 +3511,13 @@ async function convertProxies(input, platform) {
   // 确保 proxies 存在
   if (input.proxies) {
     const platformConfigs = {
-      singbox: { key: 'outbounds', format: 'singbox', nameField: 'tag' },
-      mihomo: { key: 'proxies', format: 'mihomo', nameField: 'name' },
+      singbox: { key: 'outbounds', format: 'singbox' },
+      mihomo: { key: 'proxies', format: 'mihomo' },
       v2ray: { key: 'v2ray', format: 'v2ray' },
-      default: { key: 'base64', format: 'base64' },
+      default: { key: 'base64', format: 'v2ray' },
     };
-
-    const { key, format, nameField } = platformConfigs[platform] || platformConfigs.default;
-
+    const { key, format } = platformConfigs[platform] || platformConfigs.default;
     result[key] = ProxyUtils.produce(input.proxies, format, 'internal');
-    
-    // 处理需要特殊处理的平台
-    if (nameField && Array.isArray(result[key])) {
-      result[key] = processProxyItems(result[key], nameField, platform);
-    }
   }
   
   return result;
@@ -3524,9 +3530,8 @@ async function convertProxies(input, platform) {
  * @param {string} platform - 目标平台
  * @returns {Array} 处理后的代理项数组
  */
-function processProxyItems(items, nameField, platform) {
+function processProxyItems(items, nameField) {
   const nameCount = new Map();
-  
   // 统计每个名称出现的次数
   items.forEach(item => {
     const name = item[nameField];
@@ -3535,14 +3540,6 @@ function processProxyItems(items, nameField, platform) {
   
   // 处理各项
   return items.map(item => {
-    // 处理mihomo平台的IPv6地址
-    if (platform === 'mihomo' && item.server && isIPv6WithBrackets(item.server)) {
-      item = {
-        ...item,
-        server: removeIPv6Brackets(item.server)
-      };
-    }
-    
     // 处理重复名称
     const originalName = item[nameField];
     if (nameCount.get(originalName) === 1) {
@@ -3566,31 +3563,13 @@ function generateUniqueName(originalName, nameCount) {
   let suffix = 1;
   let newName = originalName;
   
-  while (nameCount.has(`${originalName}-${suffix}`)) {
+  while (nameCount.has(`${originalName}_${suffix}`)) {
     suffix++;
   }
   
-  newName = `${originalName}-${suffix}`;
+  newName = `${originalName}_${suffix}`;
   nameCount.set(newName, 1);
   return newName;
-}
-
-/**
- * 检查是否是带括号的IPv6地址
- * @param {string} address - 待检查地址
- * @returns {boolean} 是否是带括号的IPv6
- */
-function isIPv6WithBrackets(address) {
-  return /^\[[0-9a-fA-F:]+\]$/.test(address);
-}
-
-/**
- * 去除IPv6地址的括号
- * @param {string} address - IPv6地址
- * @returns {string} 处理后的地址
- */
-function removeIPv6Brackets(address) {
-  return address.replace(/^\[|\]$/g, '');
 }
 
 /**
@@ -3633,7 +3612,7 @@ function formatResponse(result, request) {
     return new Response(result.base64, { status: 200, headers });
   }
   
-  return new Response({}, { status: 200, headers });
+  return new Response('', { status: 200, headers });
 }
 
 /**

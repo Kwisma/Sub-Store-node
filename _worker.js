@@ -3495,7 +3495,7 @@ async function processSingleInput(input, platform) {
 }
 
 /**
- * 转换代理数据到目标格式并处理重复名称和IPv6地址
+ * 转换代理数据到目标格式
  * @param {Object|string} input - 输入数据
  * @param {string} platform - 目标平台
  * @returns {Object} 转换结果
@@ -3524,52 +3524,41 @@ async function convertProxies(input, platform) {
 }
 
 /**
- * 处理代理项的特殊逻辑（去重和IPv6处理）
+ * 生成唯一名称
  * @param {Array} items - 代理项数组
  * @param {string} nameField - 名称字段名
- * @param {string} platform - 目标平台
  * @returns {Array} 处理后的代理项数组
  */
 function processProxyItems(items, nameField) {
   const nameCount = new Map();
+  
   // 统计每个名称出现的次数
   items.forEach(item => {
     const name = item[nameField];
     nameCount.set(name, (nameCount.get(name) || 0) + 1);
   });
   
-  // 处理各项
+  // 处理重复名称
   return items.map(item => {
-    // 处理重复名称
     const originalName = item[nameField];
+    let suffix = 1;
+    let newName = originalName;
     if (nameCount.get(originalName) === 1) {
       return item;
     }
+
+    while (nameCount.has(`${originalName}_${suffix}`)) {
+      suffix++;
+    }
+    
+    newName = `${originalName}_${suffix}`;
+    nameCount.set(newName, 1);
     
     return {
       ...item,
-      [nameField]: generateUniqueName(originalName, nameCount)
+      [nameField]: newName
     };
   });
-}
-
-/**
- * 生成唯一名称
- * @param {string} originalName - 原始名称
- * @param {Map} nameCount - 名称计数Map
- * @returns {string} 唯一名称
- */
-function generateUniqueName(originalName, nameCount) {
-  let suffix = 1;
-  let newName = originalName;
-  
-  while (nameCount.has(`${originalName}_${suffix}`)) {
-    suffix++;
-  }
-  
-  newName = `${originalName}_${suffix}`;
-  nameCount.set(newName, 1);
-  return newName;
 }
 
 /**

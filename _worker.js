@@ -1334,9 +1334,8 @@ function URI_Producer() {
         break
       case 'ss':
         const userinfo = `${proxy.cipher}:${proxy.password}`
-        result = `ss://${
-          proxy.cipher?.startsWith('2022-blake3-') ? `${encodeURIComponent(proxy.cipher)}:${encodeURIComponent(proxy.password)}` : Base64.encode(userinfo)
-        }@${proxy.server}:${proxy.port}${proxy.plugin ? '/' : ''}`
+        result = `ss://${proxy.cipher?.startsWith('2022-blake3-') ? `${encodeURIComponent(proxy.cipher)}:${encodeURIComponent(proxy.password)}` : Base64.encode(userinfo)
+          }@${proxy.server}:${proxy.port}${proxy.plugin ? '/' : ''}`
         if (proxy.plugin) {
           result += '?plugin='
           const opts = proxy['plugin-opts']
@@ -1364,9 +1363,8 @@ function URI_Producer() {
         break
       case 'ssr':
         result = `${proxy.server}:${proxy.port}:${proxy.protocol}:${proxy.cipher}:${proxy.obfs}:${Base64.encode(proxy.password)}/`
-        result += `?remarks=${Base64.encode(proxy.name)}${proxy['obfs-param'] ? '&obfsparam=' + Base64.encode(proxy['obfs-param']) : ''}${
-          proxy['protocol-param'] ? '&protocolparam=' + Base64.encode(proxy['protocol-param']) : ''
-        }`
+        result += `?remarks=${Base64.encode(proxy.name)}${proxy['obfs-param'] ? '&obfsparam=' + Base64.encode(proxy['obfs-param']) : ''}${proxy['protocol-param'] ? '&protocolparam=' + Base64.encode(proxy['protocol-param']) : ''
+          }`
         result = 'ssr://' + Base64.encode(result)
         break
       case 'vmess':
@@ -1577,11 +1575,10 @@ function URI_Producer() {
             trojanMode = `&mode=${encodeURIComponent(proxy._mode)}`
           }
         }
-        result = `trojan://${proxy.password}@${proxy.server}:${proxy.port}?sni=${encodeURIComponent(proxy.sni || proxy.server)}${
-          proxy['skip-cert-verify'] ? '&allowInsecure=1' : ''
-        }${trojanTransport}${trojanAlpn}${trojanFp}${trojanSecurity}${trojanSid}${trojanPbk}${trojanSpx}${trojanMode}${trojanExtra}#${encodeURIComponent(
-          proxy.name
-        )}`
+        result = `trojan://${proxy.password}@${proxy.server}:${proxy.port}?sni=${encodeURIComponent(proxy.sni || proxy.server)}${proxy['skip-cert-verify'] ? '&allowInsecure=1' : ''
+          }${trojanTransport}${trojanAlpn}${trojanFp}${trojanSecurity}${trojanSid}${trojanPbk}${trojanSpx}${trojanMode}${trojanExtra}#${encodeURIComponent(
+            proxy.name
+          )}`
         break
       case 'hysteria2':
         let hysteria2params = []
@@ -1684,9 +1681,8 @@ function URI_Producer() {
             }
           })
 
-          result = `tuic://${encodeURIComponent(proxy.uuid)}:${encodeURIComponent(proxy.password)}@${proxy.server}:${
-            proxy.port
-          }?${tuicParams.join('&')}#${encodeURIComponent(proxy.name)}`
+          result = `tuic://${encodeURIComponent(proxy.uuid)}:${encodeURIComponent(proxy.password)}@${proxy.server}:${proxy.port
+            }?${tuicParams.join('&')}#${encodeURIComponent(proxy.name)}`
         }
         break
       case 'anytls':
@@ -2185,7 +2181,7 @@ const PROXY_PARSERS = (() => {
               transportHost = parsedHost
             }
             // eslint-disable-next-line no-empty
-          } catch (e) {}
+          } catch (e) { }
           let transportPath = params.path
 
           // 补上默认 path
@@ -3333,14 +3329,14 @@ export default {
   async fetch(request) {
     try {
       const { target, nodeArray } = parseRequestParams(request);
-      
+
       if (!target || nodeArray.length === 0) {
         return renderUsageInstructions();
       }
-      
+
       const result = await processNodeConversion(nodeArray, target, request);
       return formatResponse(result, request);
-      
+
     } catch (error) {
       return new Response(`Error: ${error.message}`, { status: 500 });
     }
@@ -3356,12 +3352,12 @@ function parseRequestParams(request) {
   const url = new URL(request.url);
   let target = url.searchParams.get('target');
   const inputnode = url.searchParams.get('url');
-  const nodeArray = inputnode ? inputnode.split(/[,]/) : [];
-  
+  const nodeArray = inputnode ? inputnode.split(/[,|]/) : [];
+
   // 标准化目标类型
   if (/meta|clash.meta|clash|clashverge|mihomo/i.test(target)) target = 'mihomo';
   if (/singbox|sing-box|sfa/i.test(target)) target = 'singbox';
-  
+
   return { target, nodeArray };
 }
 
@@ -3406,7 +3402,7 @@ async function processNodeConversion(nodeArray, target, request) {
   const processedResults = await Promise.all(
     nodeArray.map(input => processSingleInput(input, target))
   );
-  
+
   const concatValues = (targetProp, sourceProp) => {
     if (sourceProp) {
       if (Array.isArray(sourceProp)) {
@@ -3436,8 +3432,8 @@ async function processNodeConversion(nodeArray, target, request) {
     results.base64 = btoa(unescape(encodeURIComponent(results.base64)));
   }
   // 随机选择一个headers
-  const randomHeaders = results.headers.length > 0 
-    ? results.headers[Math.floor(Math.random() * results.headers.length)] 
+  const randomHeaders = results.headers.length > 0
+    ? results.headers[Math.floor(Math.random() * results.headers.length)]
     : undefined;
   // 清理空字段
   if (!results.proxies.length) delete results.proxies;
@@ -3458,7 +3454,7 @@ async function processSingleInput(input, platform) {
     let data;
     let result = {};
     const isHttpInput = /^https?:\/\//i.test(input);
-    
+
     if (isHttpInput) {
       const response = await fetchResponse(input, 'clash.mate');
       data = response?.data ?? response;
@@ -3480,7 +3476,7 @@ async function processSingleInput(input, platform) {
       const resultsArray = await Promise.all(
         splitData.map(item => convertProxies(item, platform))
       );
-      
+
       // 合并结果
       resultsArray.forEach(res => {
         Object.entries(res).forEach(([key, value]) => {
@@ -3488,7 +3484,7 @@ async function processSingleInput(input, platform) {
         });
       });
     }
-    
+
     return result;
   } catch (error) {
     console.error(`Error processing input: ${input}`, error);
@@ -3504,7 +3500,7 @@ async function processSingleInput(input, platform) {
  */
 async function convertProxies(input, platform) {
   let result = {};
-  
+
   // 如果没有 proxies，则解析并重新赋值
   if (!input?.proxies) {
     input = { proxies: ProxyUtils.parse(input) };
@@ -3521,7 +3517,7 @@ async function convertProxies(input, platform) {
     const { key, format } = platformConfigs[platform] || platformConfigs.default;
     result[key] = ProxyUtils.produce(input.proxies, format, 'internal');
   }
-  
+
   return result;
 }
 
@@ -3533,13 +3529,13 @@ async function convertProxies(input, platform) {
  */
 function processProxyItems(items, nameField) {
   const nameCount = new Map();
-  
+
   // 统计每个名称出现的次数
   items.forEach(item => {
     const name = item[nameField];
     nameCount.set(name, (nameCount.get(name) || 0) + 1);
   });
-  
+
   // 处理重复名称
   return items.map(item => {
     const originalName = item[nameField];
@@ -3552,10 +3548,10 @@ function processProxyItems(items, nameField) {
     while (nameCount.has(`${originalName}_${suffix}`)) {
       suffix++;
     }
-    
+
     newName = `${originalName}_${suffix}`;
     nameCount.set(newName, 1);
-    
+
     return {
       ...item,
       [nameField]: newName
@@ -3573,36 +3569,36 @@ function formatResponse(result, request) {
   const isBrowser = /Mozilla|Chrome|Safari|Edge|Opera|Firefox/i.test(
     request.headers.get('User-Agent')
   );
-  
+
   const headers = new Headers(result.headers);
   headers.set('Content-Type', 'application/json; charset=utf-8');
-  
+
   if (isBrowser) {
     headers.set('Content-Disposition', 'inline');
   }
 
   if (Array.isArray(result?.proxies) && result?.proxies?.length > 0) {
-    return new Response(JSON.stringify({ proxies: result.proxies }, null, 4), { 
-      status: 200, 
-      headers 
-    });
-  } 
-  
-  if (Array.isArray(result?.outbounds) && result?.outbounds?.length > 0) {
-    return new Response(JSON.stringify({ outbounds: result.outbounds }, null, 4), { 
-      status: 200, 
-      headers 
+    return new Response(JSON.stringify({ proxies: result.proxies }, null, 4), {
+      status: 200,
+      headers
     });
   }
-  
+
+  if (Array.isArray(result?.outbounds) && result?.outbounds?.length > 0) {
+    return new Response(JSON.stringify({ outbounds: result.outbounds }, null, 4), {
+      status: 200,
+      headers
+    });
+  }
+
   if (result?.v2ray) {
     return new Response(result.v2ray, { status: 200, headers });
   }
-  
+
   if (result?.base64) {
     return new Response(result.base64, { status: 200, headers });
   }
-  
+
   return new Response('', { status: 200, headers });
 }
 
@@ -3622,14 +3618,14 @@ async function fetchResponse(url, userAgent) {
   } catch {
     return url;
   }
-  
+
   const headersObj = Object.fromEntries(response.headers.entries());
   const sanitizedCD = sanitizeContentDisposition(response.headers);
-  
+
   if (sanitizedCD) {
     headersObj["content-disposition"] = sanitizedCD;
   }
-  
+
   return {
     status: response.status,
     headers: headersObj,
@@ -3652,7 +3648,7 @@ function sanitizeContentDisposition(headers) {
 
   const originalFilename = filenameMatch[1];
   const isNonAscii = /[^\x00-\x7F]/.test(originalFilename);
-  
+
   if (!isNonAscii) return contentDisposition;
 
   const fallback = "download.json";

@@ -1,0 +1,22 @@
+{
+	"name": "sub-store-node",
+	"version": "0.0.1",
+	"private": true,
+	"license": "MIT",
+	"scripts": {
+		"deploy": "wrangler deploy",
+		"dev": "wrangler dev",
+		"build": "node esbuild.js",
+		"start": "wrangler dev",
+		"lint": "prettier --write \"**/*.js\""
+	},
+	"devDependencies": {
+		"@cloudflare/vitest-pool-workers": "0.8.47",
+		"esbuild": "^0.25.8",
+		"prettier": "^3.6.2"
+	},
+	"dependencies": {
+		"yaml": "^2.8.1",
+		"js-base64": "^3.7.8"
+	}
+}

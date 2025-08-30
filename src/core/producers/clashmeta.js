@@ -1,4 +1,4 @@
-import { isPresent } from '@/core/proxy-utils/producers/utils';
+import { isPresent } from '../utils/index.js';
 
 const ipVersions = {
     dual: 'dual',
@@ -62,7 +62,9 @@ export default function ClashMeta_Producer() {
                 } else if (
                     ['anytls'].includes(proxy.type) &&
                     proxy.network &&
-                    (!['tcp'].includes(proxy.network) || (['tcp'].includes(proxy.network) && proxy['reality-opts']))
+                    (!['tcp'].includes(proxy.network) ||
+                        (['tcp'].includes(proxy.network) &&
+                            proxy['reality-opts']))
                 ) {
                     return false;
                 }
@@ -83,37 +85,64 @@ export default function ClashMeta_Producer() {
                     }
                     // https://github.com/MetaCubeX/Clash.Meta/blob/Alpha/docs/config.yaml#L400
                     // https://stash.wiki/proxy-protocols/proxy-types#vmess
-                    if (isPresent(proxy, 'cipher') && !['auto', 'none', 'zero', 'aes-128-gcm', 'chacha20-poly1305'].includes(proxy.cipher)) {
+                    if (
+                        isPresent(proxy, 'cipher') &&
+                        ![
+                            'auto',
+                            'none',
+                            'zero',
+                            'aes-128-gcm',
+                            'chacha20-poly1305',
+                        ].includes(proxy.cipher)
+                    ) {
                         proxy.cipher = 'auto';
                     }
                 } else if (proxy.type === 'tuic') {
                     if (isPresent(proxy, 'alpn')) {
-                        proxy.alpn = Array.isArray(proxy.alpn) ? proxy.alpn : [proxy.alpn];
+                        proxy.alpn = Array.isArray(proxy.alpn)
+                            ? proxy.alpn
+                            : [proxy.alpn];
                     } else {
                         proxy.alpn = ['h3'];
                     }
-                    if (isPresent(proxy, 'tfo') && !isPresent(proxy, 'fast-open')) {
+                    if (
+                        isPresent(proxy, 'tfo') &&
+                        !isPresent(proxy, 'fast-open')
+                    ) {
                         proxy['fast-open'] = proxy.tfo;
                     }
                     // https://github.com/MetaCubeX/Clash.Meta/blob/Alpha/adapter/outbound/tuic.go#L197
-                    if ((!proxy.token || proxy.token.length === 0) && !isPresent(proxy, 'version')) {
+                    if (
+                        (!proxy.token || proxy.token.length === 0) &&
+                        !isPresent(proxy, 'version')
+                    ) {
                         proxy.version = 5;
                     }
                 } else if (proxy.type === 'hysteria') {
                     // auth_str 将会在未来某个时候删除 但是有的机场不规范
-                    if (isPresent(proxy, 'auth_str') && !isPresent(proxy, 'auth-str')) {
+                    if (
+                        isPresent(proxy, 'auth_str') &&
+                        !isPresent(proxy, 'auth-str')
+                    ) {
                         proxy['auth-str'] = proxy['auth_str'];
                     }
                     if (isPresent(proxy, 'alpn')) {
-                        proxy.alpn = Array.isArray(proxy.alpn) ? proxy.alpn : [proxy.alpn];
+                        proxy.alpn = Array.isArray(proxy.alpn)
+                            ? proxy.alpn
+                            : [proxy.alpn];
                     }
-                    if (isPresent(proxy, 'tfo') && !isPresent(proxy, 'fast-open')) {
+                    if (
+                        isPresent(proxy, 'tfo') &&
+                        !isPresent(proxy, 'fast-open')
+                    ) {
                         proxy['fast-open'] = proxy.tfo;
                     }
                 } else if (proxy.type === 'wireguard') {
-                    proxy.keepalive = proxy.keepalive ?? proxy['persistent-keepalive'];
+                    proxy.keepalive =
+                        proxy.keepalive ?? proxy['persistent-keepalive'];
                     proxy['persistent-keepalive'] = proxy.keepalive;
-                    proxy['preshared-key'] = proxy['preshared-key'] ?? proxy['pre-shared-key'];
+                    proxy['preshared-key'] =
+                        proxy['preshared-key'] ?? proxy['pre-shared-key'];
                     proxy['pre-shared-key'] = proxy['preshared-key'];
                 } else if (proxy.type === 'snell' && proxy.version < 3) {
                     delete proxy.udp;
@@ -123,7 +152,10 @@ export default function ClashMeta_Producer() {
                         delete proxy.sni;
                     }
                 } else if (proxy.type === 'ss') {
-                    if (isPresent(proxy, 'shadow-tls-password') && !isPresent(proxy, 'plugin')) {
+                    if (
+                        isPresent(proxy, 'shadow-tls-password') &&
+                        !isPresent(proxy, 'plugin')
+                    ) {
                         proxy.plugin = 'shadow-tls';
                         proxy['plugin-opts'] = {
                             host: proxy['shadow-tls-sni'],
@@ -136,23 +168,41 @@ export default function ClashMeta_Producer() {
                     }
                 }
 
-                if (['vmess', 'vless'].includes(proxy.type) && proxy.network === 'http') {
+                if (
+                    ['vmess', 'vless'].includes(proxy.type) &&
+                    proxy.network === 'http'
+                ) {
                     let httpPath = proxy['http-opts']?.path;
-                    if (isPresent(proxy, 'http-opts.path') && !Array.isArray(httpPath)) {
+                    if (
+                        isPresent(proxy, 'http-opts.path') &&
+                        !Array.isArray(httpPath)
+                    ) {
                         proxy['http-opts'].path = [httpPath];
                     }
                     let httpHost = proxy['http-opts']?.headers?.Host;
-                    if (isPresent(proxy, 'http-opts.headers.Host') && !Array.isArray(httpHost)) {
+                    if (
+                        isPresent(proxy, 'http-opts.headers.Host') &&
+                        !Array.isArray(httpHost)
+                    ) {
                         proxy['http-opts'].headers.Host = [httpHost];
                     }
                 }
-                if (['vmess', 'vless'].includes(proxy.type) && proxy.network === 'h2') {
+                if (
+                    ['vmess', 'vless'].includes(proxy.type) &&
+                    proxy.network === 'h2'
+                ) {
                     let path = proxy['h2-opts']?.path;
-                    if (isPresent(proxy, 'h2-opts.path') && Array.isArray(path)) {
+                    if (
+                        isPresent(proxy, 'h2-opts.path') &&
+                        Array.isArray(path)
+                    ) {
                         proxy['h2-opts'].path = path[0];
                     }
                     let host = proxy['h2-opts']?.headers?.host;
-                    if (isPresent(proxy, 'h2-opts.headers.Host') && !Array.isArray(host)) {
+                    if (
+                        isPresent(proxy, 'h2-opts.headers.Host') &&
+                        !Array.isArray(host)
+                    ) {
                         proxy['h2-opts'].headers.host = [host];
                     }
                 }
@@ -164,21 +214,36 @@ export default function ClashMeta_Producer() {
                         const [_, path = '', ed = ''] = reg.exec(networkPath);
                         proxy[`${proxy.network}-opts`].path = path;
                         if (ed !== '') {
-                            proxy['ws-opts']['early-data-header-name'] = 'Sec-WebSocket-Protocol';
-                            proxy['ws-opts']['max-early-data'] = parseInt(ed, 10);
+                            proxy['ws-opts']['early-data-header-name'] =
+                                'Sec-WebSocket-Protocol';
+                            proxy['ws-opts']['max-early-data'] = parseInt(
+                                ed,
+                                10,
+                            );
                         }
                     } else {
-                        proxy[`${proxy.network}-opts`] = proxy[`${proxy.network}-opts`] || {};
+                        proxy[`${proxy.network}-opts`] =
+                            proxy[`${proxy.network}-opts`] || {};
                         proxy[`${proxy.network}-opts`].path = '/';
                     }
                 }
 
                 if (proxy['plugin-opts']?.tls) {
                     if (isPresent(proxy, 'skip-cert-verify')) {
-                        proxy['plugin-opts']['skip-cert-verify'] = proxy['skip-cert-verify'];
+                        proxy['plugin-opts']['skip-cert-verify'] =
+                            proxy['skip-cert-verify'];
                     }
                 }
-                if (['trojan', 'tuic', 'hysteria', 'hysteria2', 'juicity', 'anytls'].includes(proxy.type)) {
+                if (
+                    [
+                        'trojan',
+                        'tuic',
+                        'hysteria',
+                        'hysteria2',
+                        'juicity',
+                        'anytls',
+                    ].includes(proxy.type)
+                ) {
                     delete proxy.tls;
                 }
 
@@ -207,18 +272,27 @@ export default function ClashMeta_Producer() {
                         }
                     }
                 }
-                if (['grpc'].includes(proxy.network) && proxy[`${proxy.network}-opts`]) {
+                if (
+                    ['grpc'].includes(proxy.network) &&
+                    proxy[`${proxy.network}-opts`]
+                ) {
                     delete proxy[`${proxy.network}-opts`]['_grpc-type'];
                     delete proxy[`${proxy.network}-opts`]['_grpc-authority'];
                 }
 
                 if (proxy['ip-version']) {
-                    proxy['ip-version'] = ipVersions[proxy['ip-version']] || proxy['ip-version'];
+                    proxy['ip-version'] =
+                        ipVersions[proxy['ip-version']] || proxy['ip-version'];
                 }
                 return proxy;
             });
 
-        return type === 'internal' ? list : 'proxies:\n' + list.map((proxy) => '  - ' + JSON.stringify(proxy) + '\n').join('');
+        return type === 'internal'
+            ? list
+            : 'proxies:\n' +
+                  list
+                      .map((proxy) => '  - ' + JSON.stringify(proxy) + '\n')
+                      .join('');
     };
     return { type, produce };
 }

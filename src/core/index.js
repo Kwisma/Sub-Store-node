@@ -10,9 +10,9 @@ import {
     ipAddress,
     getRandomPort,
     numberToString,
-    $,
     isPresent,
 } from './utils/index.js';
+import { $ } from './utils/log.js';
 import PROXY_PREPROCESSORS from './preprocessors/index.js';
 import PROXY_PRODUCERS from './producers/index.js';
 import PROXY_PARSERS from './parsers/index.js';

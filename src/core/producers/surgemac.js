@@ -1,5 +1,6 @@
 import { Base64 } from 'js-base64';
-import { isPresent, isIPv4, isIPv6, $ } from '../utils/index.js';
+import { isPresent, isIPv4, isIPv6 } from '../utils/index.js';
+import { $ } from '../utils/log.js';
 import { Result } from './utils.js';
 import Surge_Producer from './surge.js';
 import ClashMeta_Producer from './clashmeta.js';

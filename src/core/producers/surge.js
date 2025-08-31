@@ -1,5 +1,6 @@
-import { isPresent, isNotBlank, getIfNotBlank, $ } from '../utils/index.js';
+import { isPresent, isNotBlank, getIfNotBlank } from '../utils/index.js';
 import { Result } from './utils.js';
+import { $ } from '../utils/log.js';
 const targetPlatform = 'Surge';
 
 const ipVersions = {

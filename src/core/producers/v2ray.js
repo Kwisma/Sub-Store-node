@@ -1,7 +1,7 @@
 /* eslint-disable no-case-declarations */
 import { Base64 } from 'js-base64';
 import URI_Producer from './uri.js';
-import { $ } from '../utils/index.js';
+import { $ } from '../utils/log.js';
 
 const URI = URI_Producer();
 

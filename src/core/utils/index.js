@@ -1,17 +1,3 @@
-export const $ = {
-    log(...msg) {
-        console.log(`[LOG]: ${msg.join(' ')}`);
-    },
-
-    info(...msg) {
-        console.log(`[INFO]: ${msg.join(' ')}`);
-    },
-
-    error(...msg) {
-        console.log(`[ERROR]: ${msg.join(' ')}`);
-    }
-}
-
 import * as ipAddress from 'ip-address';
 // source: https://stackoverflow.com/a/36760050
 const IPV4_REGEX = /^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)(\.(?!$)|$)){4}$/;

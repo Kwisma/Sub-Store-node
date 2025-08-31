@@ -1,6 +1,6 @@
 {
 	"name": "sub-store-node",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"private": true,
 	"license": "MIT",
 	"scripts": {
@@ -11,6 +11,7 @@
 		"lint": "prettier --write \"**/*.js\""
 	},
 	"dependencies": {
+		"Buffer": "^0.0.0",
 		"buffer": "^6.0.3",
 		"ip-address": "^10.0.1",
 		"js-base64": "^3.7.8",

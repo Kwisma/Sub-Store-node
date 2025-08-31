@@ -1,6 +1,6 @@
 import ClashMeta_Producer from './clashmeta.js';
-import { isIPv4, isIPv6, $ } from '../utils/index.js';
-
+import { isIPv4, isIPv6 } from '../utils/index.js';
+import { $ } from '../utils/log.js';
 const ipVersions = {
     ipv4: 'ipv4_only',
     ipv6: 'ipv6_only',

@@ -38,7 +38,7 @@
 
 **示例 2：多个订阅合并转换**
 ```
-/?target=clash&url=https%3A%2F%2Fexample.com%2Fsub1%2Chttps%3A%2F%2Fexample.com%2Fsub2
+/?target=clash&url=https%3A%2F%2Fexample.com%2Fsubscription1,https%3A%2F%2Fexample.com%2Fsubscription2
 ```
 
 ## 注意事项

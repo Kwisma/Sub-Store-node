@@ -1,5 +1,5 @@
-import { isPresent, $ } from '../utils/index.js';
-
+import { isPresent } from '../utils/index.js';
+import { $ } from '../utils/log.js';
 export default function Stash_Producer() {
     const type = 'ALL';
     const produce = (proxies, type, opts = {}) => {

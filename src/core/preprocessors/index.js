@@ -1,6 +1,6 @@
 import { safeLoad } from '../utils/yaml.js';
 import { Base64 } from 'js-base64';
-import { $ } from '../utils/index.js';
+import { $ } from '../utils/log.js';
 
 function HTML() {
     const name = 'HTML';

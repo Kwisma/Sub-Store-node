@@ -5,9 +5,9 @@ import {
     isPresent,
     isNotBlank,
     getIfPresent,
-    getRandomPort,
-    $
+    getRandomPort
 } from '../utils/index.js';
+import { $ } from '../utils/log.js';
 import getSurgeParser from './peggy/surge.js';
 import getLoonParser from './peggy/loon.js';
 import getQXParser from './peggy/qx.js';

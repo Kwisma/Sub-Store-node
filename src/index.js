@@ -1,9 +1,8 @@
 import { base64EncodeUtf8, base64DecodeUtf8, isBase64 } from './core/utils/base64.js';
 import { ProxyUtils } from './core/index.js';
 import { fetchResponse, safeParse } from './core/utils/download.js';
-import { $ } from './core/utils/log.js';
 
-// 同步更新到 Sub-Store 版本 2.20.16 ：https://github.com/sub-store-org/Sub-Store/commit/bb443c8
+// 同步更新到 Sub-Store  ：https://github.com/sub-store-org/Sub-Store/commit/bb443c8
 
 /**
  * 订阅转换入口
@@ -120,12 +119,12 @@ function mergeResults(results, processedResults) {
 }
 
 // 示例用法（取消注释以运行）
-(async () => {
-    const data = await processNodeConversion(
-        [
-            'https://cdn.jsdmirror.com/gh/Kwisma/MarketNest@main/config.yaml',
-            'https://cdn.jsdmirror.com/gh/Kwisma/MarketNest@main/config.yaml',
-        ], 'mihomo');
+// (async () => {
+//     const data = await processNodeConversion(
+//         [
+//             'https://cdn.jsdmirror.com/gh/Kwisma/MarketNest@main/config.yaml',
+//             'https://cdn.jsdmirror.com/gh/Kwisma/MarketNest@main/config.yaml',
+//         ], 'mihomo');
 
-    $.info('data:', JSON.stringify(data.data, null, 2));
-})();
+//     $.info('data:', JSON.stringify(data.data, null, 2));
+// })();

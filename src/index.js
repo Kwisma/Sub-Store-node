@@ -9,7 +9,7 @@ import PROXY_PRODUCERS from './core/producers/index.js';
  * 订阅转换入口
  * @param {Array<string>} urlArray - 输入订阅URL数组
  * @param {string} platform - 目标平台
- * @returns {Promise<{data: any, headers: Object}>} 合并后的结果和响应头
+ * @returns {Promise<{data: any, headers: Object, status: number}>} 合并后的结果和响应头
  */
 export default async function processNodeConversion(urlArray, platform) {
     const results = {
@@ -17,10 +17,12 @@ export default async function processNodeConversion(urlArray, platform) {
         headers: []
     };
     if (!urlArray || urlArray.length === 0) {
+        results.status = 400
         results.data = '输入节点数组不能为空';
         return results;
     }
     if (!PROXY_PRODUCERS[platform]) {
+        results.status = 400
         results.data = `目标平台：不支持 ${platform}！`;
         return results;
     }
@@ -30,8 +32,11 @@ export default async function processNodeConversion(urlArray, platform) {
         );
         mergeResults(results, processedResults);
     } catch (error) {
+        results.status = 500
         results.data = `处理节点失败：${error.message}`;
+        return results;
     }
+    results.status = 200
     return results;
 }
 

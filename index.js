@@ -21,7 +21,7 @@ export default {
                 data = JSON.stringify(data)
             }
             return new Response(data, {
-                status: 200,
+                status: result.status,
                 headers: result.headers,
             });
         } catch (error) {

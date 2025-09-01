@@ -1,8 +1,8 @@
 {
 	"name": "sub-store-node",
-	"version": "1.0.4",
+	"version": "1.0.5",
 	"private": true,
-    "license": "GPL-3.0",
+	"license": "GPL-3.0",
 	"scripts": {
 		"deploy": "wrangler deploy",
 		"dev": "wrangler dev index.js --live-reload",
@@ -19,8 +19,7 @@
 		"jsrsasign": "^11.1.0",
 		"lodash": "^4.17.21",
 		"peggy": "^5.0.6",
-		"static-js-yaml": "^1.0.0",
-		"yaml": "^2.8.0"
+		"static-js-yaml": "^1.0.0"
 	},
 	"devDependencies": {
 		"esbuild": "^0.25.9",

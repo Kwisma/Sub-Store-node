@@ -117,14 +117,3 @@ function mergeResults(results, processedResults) {
         results.data = base64EncodeUtf8(textdata);
     }
 }
-
-// 示例用法（取消注释以运行）
-// (async () => {
-//     const data = await processNodeConversion(
-//         [
-//             'https://cdn.jsdmirror.com/gh/Kwisma/MarketNest@main/config.yaml',
-//             'https://cdn.jsdmirror.com/gh/Kwisma/MarketNest@main/config.yaml',
-//         ], 'mihomo');
-
-//     $.info('data:', JSON.stringify(data.data, null, 2));
-// })();

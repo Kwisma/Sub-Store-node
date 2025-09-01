@@ -2,10 +2,10 @@
 	"name": "sub-store-node",
 	"version": "1.0.3",
 	"private": true,
-	"license": "MIT",
+    "license": "GPL-3.0",
 	"scripts": {
 		"deploy": "wrangler deploy",
-		"dev": "wrangler dev",
+		"dev": "wrangler dev index.js --live-reload",
 		"build": "node esbuild.js",
 		"start": "wrangler dev",
 		"lint": "prettier --write \"**/*.js\""

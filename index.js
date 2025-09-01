@@ -39,7 +39,7 @@ function renderUsageInstructions() {
         JSON.stringify(
             {
                 version: 'SubStore v2.20.16',
-                message: '这是一个基于 cloudflare pagers 的 sub-store 节点转换工具，仅转换节点用',
+                message: '这是一个基于 cloudflare workers 的 sub-store 节点转换工具，仅转换节点用',
                 usage: {
                     target: '输出类型：{singbox|mihomo|v2ray|base64|qx|QX|QuantumultX|surge|Surge|SurgeMac|Loon|Clash|meta|clashmeta|clash.meta|Clash.Meta|ClashMeta|Mihomo|uri|URI|json|JSON|stash|Stash|shadowrocket|Shadowrocket|ShadowRocket|surfboard|Surfboard|egern|Egern}',
                     url: '输入编码后的订阅链接，多个订阅可用英文逗号(,)分隔',
@@ -48,11 +48,7 @@ function renderUsageInstructions() {
                         '/?target=v2ray&url=https%3A%2F%2Fexample.com%2Fsubscription',
                         '/?target=clash&url=https%3A%2F%2Fexample.com%2Fsub1,https%3A%2F%2Fexample.com%2Fsub1'
                     ]
-                },
-                notes: [
-                    '所有订阅链接必须进行URL编码处理',
-                    '多个订阅链接使用英文逗号分隔，不要添加空格'
-                ]
+                }
             },
             null,
             4

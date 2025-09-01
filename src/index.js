@@ -1,6 +1,7 @@
 import { base64EncodeUtf8, base64DecodeUtf8, isBase64 } from './core/utils/base64.js';
 import { ProxyUtils } from './core/index.js';
 import { fetchResponse, safeParse } from './core/utils/download.js';
+import PROXY_PRODUCERS from './core/producers/index.js';
 
 // 同步更新到 Sub-Store  ：https://github.com/sub-store-org/Sub-Store/commit/bb443c8
 
@@ -11,17 +12,26 @@ import { fetchResponse, safeParse } from './core/utils/download.js';
  * @returns {Promise<{data: any, headers: Object}>} 合并后的结果和响应头
  */
 export default async function processNodeConversion(urlArray, platform) {
-    if (!urlArray || urlArray.length === 0) {
-        throw new Error('输入节点数组不能为空');
-    }
     const results = {
         data: {},
         headers: []
     };
-    const processedResults = await Promise.all(
-        urlArray.map(input => processSingleInput(input, platform))
-    );
-    mergeResults(results, processedResults);
+    if (!urlArray || urlArray.length === 0) {
+        results.data = '输入节点数组不能为空';
+        return results;
+    }
+    if (!PROXY_PRODUCERS[platform]) {
+        results.data = `目标平台：不支持 ${platform}！`;
+        return results;
+    }
+    try {
+        const processedResults = await Promise.all(
+            urlArray.map(input => processSingleInput(input, platform))
+        );
+        mergeResults(results, processedResults);
+    } catch (error) {
+        results.data = `处理节点失败：${error.message}`;
+    }
     return results;
 }
 

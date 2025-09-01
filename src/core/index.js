@@ -1,5 +1,4 @@
 import { Base64 } from 'js-base64';
-import { Buffer } from 'buffer';
 import rs from './utils/rs.js';
 import {
     isIPv4,
@@ -188,7 +187,6 @@ export const ProxyUtils = {
     isIPv6,
     isIP,
     isValidUUID,
-    Buffer,
     Base64,
     JSON5,
 };

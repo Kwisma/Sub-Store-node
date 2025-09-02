@@ -60,7 +60,7 @@ async function processSingleInput(input, platform) {
         data = ProxyUtils.produce(data.proxies, platform);
     } else {
         if (!isBase64(data)) {
-            proxies = data.split('\n').map(item => ProxyUtils.parse(item));
+            proxies = data.split(/\s+/).filter(item => item.trim()).map(ProxyUtils.parse).flat(Infinity).filter(Boolean);
         } else {
             proxies = ProxyUtils.parse(data);
         }

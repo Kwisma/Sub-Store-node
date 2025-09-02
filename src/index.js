@@ -76,16 +76,23 @@ async function processSingleInput(input, platform) {
  * @param {Array} processedResults - 处理结果数组
  */
 function mergeResults(results, processedResults) {
-    const proxyDataArray = [];
     const base64DataArray = [];
     const allHeaders = [];
     processedResults.forEach(({ data, headers }) => {
         if (isBase64(data)) {
             base64DataArray.push(data);
         } else {
-            const dataObj = safeLoad(data).proxies;
-            if (dataObj) {
-                proxyDataArray.push(dataObj);
+            const loaded = safeLoad(data);
+            if (loaded && typeof loaded === 'object') {
+                for (const key of Object.keys(loaded)) {
+                    const val = loaded[key];
+                    if (Array.isArray(val)) {
+                        if (!Array.isArray(results.data[key])) {
+                            results.data[key] = [];
+                        }
+                        results.data[key].push(...val);
+                    }
+                }
             } else {
                 results.data = data;
             }
@@ -95,6 +102,7 @@ function mergeResults(results, processedResults) {
             allHeaders.push(headers);
         }
     });
+
     if (allHeaders.length > 0) {
         const randomIndex = Math.floor(Math.random() * allHeaders.length);
         results.headers = allHeaders[randomIndex];
@@ -108,8 +116,8 @@ function mergeResults(results, processedResults) {
         }
         results.data = base64EncodeUtf8(textdata);
     }
-    if (proxyDataArray.length > 0) {
-        const proxies = proxyDataArray.flat();
-        results.data = safeDump({ proxies });
+
+    if (results.data.proxies) {
+        results.data = safeDump(results.data, { lineWidth: -1 });
     }
 }

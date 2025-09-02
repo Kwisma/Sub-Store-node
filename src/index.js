@@ -1,6 +1,7 @@
 import { base64EncodeUtf8, base64DecodeUtf8, isBase64 } from './core/utils/base64.js';
 import { ProxyUtils } from './core/index.js';
-import { fetchResponse, safeParse } from './core/utils/download.js';
+import { fetchResponse } from './core/utils/download.js';
+import { safeLoad, safeDump } from './core/utils/yaml.js';
 import PROXY_PRODUCERS from './core/producers/index.js';
 
 // 同步更新到 Sub-Store  ：https://github.com/sub-store-org/Sub-Store/commit/bb443c8
@@ -60,19 +61,11 @@ async function processSingleInput(input, platform) {
         data = ProxyUtils.produce(data.proxies, platform);
     } else {
         if (!isBase64(data)) {
-            proxies = data.split(/\s+/).filter(item => item.trim()).map(ProxyUtils.parse).flat(Infinity).filter(Boolean);
+            proxies = data.split('\n').filter(item => item.trim()).map(ProxyUtils.parse).flat(Infinity).filter(Boolean);
         } else {
             proxies = ProxyUtils.parse(data);
         }
         data = ProxyUtils.produce(proxies, platform);
-    }
-    try {
-        data = safeParse(data);
-        if (typeof data === 'string') {
-            data = JSON.parse(data);
-        }
-    } catch (error) {
-        data = data
     }
     return { data, headers };
 }
@@ -83,34 +76,18 @@ async function processSingleInput(input, platform) {
  * @param {Array} processedResults - 处理结果数组
  */
 function mergeResults(results, processedResults) {
-    const decodedDataArray = [];
+    const proxyDataArray = [];
+    const base64DataArray = [];
     const allHeaders = [];
     processedResults.forEach(({ data, headers }) => {
         if (isBase64(data)) {
-            decodedDataArray.push(data);
-        }
-        for (const key of Object.keys(data)) {
-            if (Array.isArray(data[key])) {
-                results.data[key] = results.data[key] || [];
-                // 遍历数组项
-                for (const item of data[key]) {
-                    if (item && typeof item === 'object' && 'name' in item) {
-                        let originalName = item.name;
-                        let newName = originalName;
-                        let counter = 1;
-
-                        // 检查已有数组是否存在同名
-                        while (results.data[key].some(x => x.name === newName)) {
-                            newName = `${originalName}_${counter++}`;
-                        }
-
-                        item.name = newName;
-                    }
-                    results.data[key].push(item);
-                }
+            base64DataArray.push(data);
+        } else {
+            const dataObj = safeLoad(data).proxies;
+            if (dataObj) {
+                proxyDataArray.push(dataObj);
             } else {
-                // 普通值，覆盖
-                results.data[key] = data[key];
+                results.data = data;
             }
         }
         // 合并响应头，简化判断逻辑
@@ -123,12 +100,16 @@ function mergeResults(results, processedResults) {
         results.headers = allHeaders[randomIndex];
     }
 
-    if (decodedDataArray.length > 0) {
+    if (base64DataArray.length > 0) {
         let textdata = ''
-        for (const item of decodedDataArray) {
+        for (const item of base64DataArray) {
             const decodedData = base64DecodeUtf8(item);
             textdata += decodedData + '\n';
         }
         results.data = base64EncodeUtf8(textdata);
+    }
+    if (proxyDataArray.length > 0) {
+        const proxies = proxyDataArray.flat();
+        results.data = safeDump({ proxies });
     }
 }

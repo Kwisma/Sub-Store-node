@@ -25,12 +25,15 @@ async function fetchResponse(url, userAgent) {
         headersObj['content-disposition'] = sanitizedCD;
     }
 
-    const req = await response.text();
-
+    let req = await response.text();
+    const data = safeLoad(req).proxies;
+    if (data) {
+        req = { proxies: data };
+    }
     return {
         status: response.status,
         headers: headersObj,
-        data: safeParse(req),
+        data: req,
     };
 }
 
@@ -60,17 +63,4 @@ function sanitizeContentDisposition(headers) {
     return `attachment; filename="${fallback}"; filename*=UTF-8''${encoded}`;
 }
 
-/**
- * 安全解析 YAML 或对象
- * @param {string|object} input - 可能是 YAML 字符串或对象
- * @returns {object|string} - 解析后的对象，如果解析失败返回原始 input
- */
-function safeParse(input) {
-    try {
-        return safeLoad(input, { maxAliasCount: -1, merge: true });
-    } catch (e) {
-        return input;
-    }
-}
-
-export { fetchResponse, safeParse };
+export { fetchResponse };

@@ -3,13 +3,9 @@ export default {
     async fetch(request) {
         try {
             const url = new URL(request.url);
-            let target = url.searchParams.get('target');
+            const target = url.searchParams.get('target');
             const inputnode = url.searchParams.get('url');
             const nodeArray = inputnode ? inputnode.split(/[,|]/) : [];
-
-            // 标准化目标类型
-            if (/meta|clash.meta|clash|clashverge|mihomo/i.test(target)) target = 'mihomo';
-            if (/singbox|sing-box|sfa/i.test(target)) target = 'singbox';
 
             if (!target || nodeArray.length === 0) {
                 return renderUsageInstructions();

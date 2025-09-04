@@ -4,51 +4,63 @@
  * @namespace $
  */
 export const $ = {
+    projectPrefix: 'Sub-Store-node',
     /**
-     * 格式化时间
-     * @param {Date} date - 时间对象
+     * 格式化时间 (Asia/Shanghai)
      * @returns {string} - 格式化后的时间字符串
      */
-    formatTime(date = new Date()) {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        const seconds = String(date.getSeconds()).padStart(2, '0');
+    formatTime() {
+        return (new Date()).toLocaleString('zh-CN', {
+            timeZone: 'Asia/Shanghai',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        }).replace(/\//g, '-');
+    },
 
-        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    /**
+     * 内部通用日志函数
+     * @param {string} level - 日志级别
+     * @param {...*} args - 日志内容
+     */
+    _log(level, ...args) {
+        const time = this.formatTime();
+        console.log(`[${this.projectPrefix}]`, time, `[${level}]:`, ...args);
     },
 
     /**
      * 打印日志
      * @param {...*} msg - 日志内容
      */
-    log(...msg) {
-        console.log(`${this.formatTime()} [LOG]: ${msg.join(' ')}`);
+    log(...args) {
+        this._log('LOG', ...args);
     },
 
     /**
      * 打印信息日志
      * @param {...*} msg - 日志内容
      */
-    info(...msg) {
-        console.log(`${this.formatTime()} [INFO]: ${msg.join(' ')}`);
+    info(...args) {
+        this._log('INFO', ...args);
     },
 
     /**
      * 打印错误日志
      * @param {...*} msg - 日志内容
      */
-    error(...msg) {
-        console.log(`${this.formatTime()} [ERROR]: ${msg.join(' ')}`);
+    error(...args) {
+        this._log('ERROR', ...args);
     },
 
     /**
      * 打印警告日志
      * @param {...*} msg - 日志内容
      */
-    warn(...msg) {
-        console.log(`${this.formatTime()} [WARN]: ${msg.join(' ')}`);
+    warn(...args) {
+        this._log('WARN', ...args);
     }
 };

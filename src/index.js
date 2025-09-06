@@ -48,7 +48,7 @@ export default async function processNodeConversion(urlArray, platform) {
  * @returns {Promise<{data: any, headers: Object}>} 处理后的结果和响应头
  */
 async function processSingleInput(input, platform) {
-    let data = null;
+    let data = input;
     let proxies = [];
     let headers = {};
     const isHttpInput = /^https?:\/\//i.test(input);

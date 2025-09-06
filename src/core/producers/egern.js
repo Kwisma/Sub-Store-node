@@ -329,7 +329,6 @@ export default function Egern_Producer() {
                         user_id: proxy.uuid,
                         security: proxy.cipher,
                         tfo: proxy.tfo || proxy['fast-open'],
-                        legacy: proxy.legacy,
                         udp_relay:
                             proxy.udp || proxy.udp_relay || proxy.udp_relay,
                         next_hop: proxy.next_hop,

@@ -78,6 +78,7 @@ async function processSingleInput(input, platform) {
 function mergeResults(results, processedResults) {
     const base64DataArray = [];
     const allHeaders = [];
+    const objectDataArray = [];
     processedResults.forEach(({ data, headers }) => {
         if (isBase64(data)) {
             base64DataArray.push(data);
@@ -86,6 +87,10 @@ function mergeResults(results, processedResults) {
             if (loaded && typeof loaded === 'object') {
                 for (const key of Object.keys(loaded)) {
                     const val = loaded[key];
+                    if (key === '0') {
+                        objectDataArray.push(val)
+                        continue
+                    }
                     if (Array.isArray(val)) {
                         if (!Array.isArray(results.data[key])) {
                             results.data[key] = [];
@@ -115,6 +120,10 @@ function mergeResults(results, processedResults) {
             textdata += decodedData + '\n';
         }
         results.data = base64EncodeUtf8(textdata);
+    }
+
+    if (objectDataArray.length > 0) {
+        results.data = objectDataArray
     }
 
     if (results.data.proxies) {

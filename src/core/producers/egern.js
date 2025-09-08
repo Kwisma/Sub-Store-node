@@ -2,11 +2,10 @@ import { isPresent } from '../utils/index.js';
 
 export default function Egern_Producer() {
     const type = 'ALL';
-    const produce = (proxies, type) => {
+    const produce = (proxies, type, opts = {}) => {
         // https://egernapp.com/zh-CN/docs/configuration/proxies
         const list = proxies
             .filter((proxy) => {
-                // if (opts['include-unsupported-proxy']) return true;
                 if (
                     ![
                         'http',
@@ -60,8 +59,12 @@ export default function Egern_Producer() {
                         !['http', 'ws', 'tcp'].includes(proxy.network) &&
                         proxy.network) ||
                     (proxy.type === 'vless' &&
-                        (typeof proxy.flow !== 'undefined' ||
-                            proxy['reality-opts'] ||
+                        ((!opts['include-unsupported-proxy'] &&
+                            (typeof proxy.flow !== 'undefined' ||
+                                proxy['reality-opts'])) ||
+                            (opts['include-unsupported-proxy'] &&
+                                typeof proxy.flow !== 'undefined' &&
+                                proxy.flow !== 'xtls-rprx-vision') ||
                             (!['http', 'ws', 'tcp'].includes(proxy.network) &&
                                 proxy.network))) ||
                     (proxy.type === 'tuic' &&
@@ -74,6 +77,7 @@ export default function Egern_Producer() {
             })
             .map((proxy) => {
                 const original = { ...proxy };
+                let flow;
                 if (proxy.tls && !proxy.sni) {
                     proxy.sni = proxy.server;
                 }
@@ -264,6 +268,12 @@ export default function Egern_Producer() {
                             },
                         };
                     }
+                    let legacy;
+                    if (isPresent(proxy, 'aead') && !proxy.aead) {
+                        legacy = true;
+                    } else if (proxy.alterId !== 0) {
+                        legacy = true;
+                    }
                     proxy = {
                         type: 'vmess',
                         name: proxy.name,
@@ -272,7 +282,7 @@ export default function Egern_Producer() {
                         user_id: proxy.uuid,
                         security,
                         tfo: proxy.tfo || proxy['fast-open'],
-                        legacy: !proxy.aead,
+                        legacy,
                         udp_relay:
                             proxy.udp || proxy.udp_relay || proxy.udp_relay,
                         next_hop: proxy.next_hop,
@@ -312,14 +322,27 @@ export default function Egern_Producer() {
                             },
                         };
                     } else if (proxy.network === 'tcp' || !proxy.network) {
+                        let reality;
+                        if (
+                            proxy['reality-opts']?.['short-id'] ||
+                            proxy['reality-opts']?.['public-key']
+                        ) {
+                            reality = {
+                                short_id: proxy['reality-opts']['short-id'],
+                                public_key: proxy['reality-opts']['public-key'],
+                            };
+                        }
                         proxy.transport = {
                             [proxy.tls ? 'tls' : 'tcp']: {
                                 sni: proxy.tls ? proxy.sni : undefined,
                                 skip_tls_verify: proxy.tls
                                     ? proxy['skip-cert-verify']
                                     : undefined,
+                                    reality,
                             },
                         };
+
+                        flow = proxy.flow;
                     }
                     proxy = {
                         type: 'vless',
@@ -333,6 +356,7 @@ export default function Egern_Producer() {
                             proxy.udp || proxy.udp_relay || proxy.udp_relay,
                         next_hop: proxy.next_hop,
                         transport: proxy.transport,
+                        flow,
                         // sni: proxy.sni,
                         // skip_tls_verify: proxy['skip-cert-verify'],
                     };

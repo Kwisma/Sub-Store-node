@@ -1,5 +1,5 @@
 import ClashMeta_Producer from './clashmeta.js';
-import { isIPv4, isIPv6 } from '../utils/index.js';
+import { isIPv4, isIPv6, isPlainObject } from '../utils/index.js';
 import { $ } from '../utils/log.js';
 
 const ipVersions = {
@@ -271,6 +271,33 @@ const tlsParser = (proxy, parsedProxy) => {
             enabled: true,
             fingerprint: proxy['client-fingerprint'],
         };
+    if (proxy._ech && isPlainObject(proxy._ech)) {
+        parsedProxy.tls.ech = proxy._ech;
+    }
+    if (proxy._curve_preferences && Array.isArray(proxy._curve_preferences)) {
+        parsedProxy.tls.curve_preferences = proxy._curve_preferences;
+    }
+    if (proxy['_fragment']) parsedProxy.tls.fragment = !!proxy['_fragment'];
+    if (proxy['_fragment_fallback_delay'])
+        parsedProxy.tls.fragment_fallback_delay =
+            proxy['_fragment_fallback_delay'];
+    if (proxy['_record_fragment'])
+        parsedProxy.tls.record_fragment = !!proxy['_record_fragment'];
+    if (proxy['_certificate'])
+        parsedProxy.tls.certificate = proxy['_certificate'];
+    if (proxy['_certificate_path'])
+        parsedProxy.tls.certificate_path = proxy['_certificate_path'];
+    if (proxy['_certificate_public_key_sha256'])
+        parsedProxy.tls.certificate_public_key_sha256 =
+            proxy['_certificate_public_key_sha256'];
+    if (proxy['_client_certificate'])
+        parsedProxy.tls.client_certificate = proxy['_client_certificate'];
+    if (proxy['_client_certificate_path'])
+        parsedProxy.tls.client_certificate_path =
+            proxy['_client_certificate_path'];
+    if (proxy['_client_key']) parsedProxy.tls.client_key = proxy['_client_key'];
+    if (proxy['_client_key_path'])
+        parsedProxy.tls.client_key_path = proxy['_client_key_path'];
     if (!parsedProxy.tls.enabled) delete parsedProxy.tls;
 };
 
@@ -345,7 +372,6 @@ const socks5Parser = (proxy = {}) => {
         type: 'socks',
         server: proxy.server,
         server_port: parseInt(`${proxy.port}`, 10),
-        password: proxy.password,
         version: '5',
     };
     if (parsedProxy.server_port < 0 || parsedProxy.server_port > 65535)
@@ -353,7 +379,16 @@ const socks5Parser = (proxy = {}) => {
     if (proxy.username) parsedProxy.username = proxy.username;
     if (proxy.password) parsedProxy.password = proxy.password;
     if (proxy.uot) parsedProxy.udp_over_tcp = true;
-    if (proxy['udp-over-tcp']) parsedProxy.udp_over_tcp = true;
+    if (proxy['udp-over-tcp']) {
+        parsedProxy.udp_over_tcp = {
+            enabled: true,
+            version:
+                !proxy['udp-over-tcp-version'] ||
+                proxy['udp-over-tcp-version'] === 1
+                    ? 1
+                    : 2,
+        };
+    }
     if (proxy['fast-open']) parsedProxy.udp_fragment = true;
     networkParser(proxy, parsedProxy);
     tfoParser(proxy, parsedProxy);
@@ -376,7 +411,7 @@ const shadowTLSParser = (proxy = {}) => {
             enabled: true,
             version:
                 !proxy['udp-over-tcp-version'] ||
-                    proxy['udp-over-tcp-version'] === 1
+                proxy['udp-over-tcp-version'] === 1
                     ? 1
                     : 2,
         };
@@ -423,7 +458,7 @@ const ssParser = (proxy = {}) => {
             enabled: true,
             version:
                 !proxy['udp-over-tcp-version'] ||
-                    proxy['udp-over-tcp-version'] === 1
+                proxy['udp-over-tcp-version'] === 1
                     ? 1
                     : 2,
         };
@@ -602,6 +637,55 @@ const trojanParser = (proxy = {}) => {
     tlsParser(proxy, parsedProxy);
     smuxParser(proxy.smux, parsedProxy);
     ipVersionParser(proxy, parsedProxy);
+    return parsedProxy;
+};
+const naiveParser = (proxy = {}) => {
+    const parsedProxy = {
+        tag: proxy.name,
+        type: 'naive',
+        server: proxy.server,
+        server_port: parseInt(`${proxy.port}`, 10),
+        tls: { enabled: true, server_name: proxy.server, insecure: false },
+    };
+    if (parsedProxy.server_port < 0 || parsedProxy.server_port > 65535)
+        throw 'invalid port';
+    if (proxy.username) parsedProxy.username = proxy.username;
+    if (proxy.password) parsedProxy.password = proxy.password;
+    if (proxy.uot) parsedProxy.udp_over_tcp = true;
+    if (proxy['udp-over-tcp']) {
+        parsedProxy.udp_over_tcp = {
+            enabled: true,
+            version:
+                !proxy['udp-over-tcp-version'] ||
+                proxy['udp-over-tcp-version'] === 1
+                    ? 1
+                    : 2,
+        };
+    }
+    const insecure_concurrency = parseInt(
+        `${proxy['insecure-concurrency']}`,
+        10,
+    );
+    if (Number.isInteger(insecure_concurrency) && insecure_concurrency >= 0)
+        parsedProxy.insecure_concurrency = insecure_concurrency;
+    if (proxy['extra-headers'])
+        parsedProxy.extra_headers = proxy['extra-headers'];
+    if (proxy.quic) parsedProxy.quic = !!proxy.quic;
+    if (proxy['quic-congestion-control'])
+        parsedProxy.quic_congestion_control = proxy['quic-congestion-control'];
+    if (proxy['fast-open']) parsedProxy.udp_fragment = true;
+    tfoParser(proxy, parsedProxy);
+    detourParser(proxy, parsedProxy);
+    tlsParser(proxy, parsedProxy);
+    smuxParser(proxy.smux, parsedProxy);
+    ipVersionParser(proxy, parsedProxy);
+    if (parsedProxy.tls?.insecure) {
+        $.info(
+            `Platform sing-box: insecure is not supported on naive outbound`,
+        );
+        delete parsedProxy.tls.insecure;
+    }
+
     return parsedProxy;
 };
 const hysteriaParser = (proxy = {}) => {
@@ -888,7 +972,7 @@ export default function singbox_Producer() {
                         case 'vmess':
                             if (
                                 !proxy.network ||
-                                ['ws', 'grpc', 'h2', 'http'].includes(
+                                ['tcp', 'ws', 'grpc', 'h2', 'http'].includes(
                                     proxy.network,
                                 )
                             ) {
@@ -900,6 +984,14 @@ export default function singbox_Producer() {
                             }
                             break;
                         case 'vless':
+                            if (
+                                proxy.encryption &&
+                                proxy.encryption !== 'none'
+                            ) {
+                                throw new Error(
+                                    `VLESS encryption is not supported`,
+                                );
+                            }
                             if (
                                 !proxy.flow ||
                                 ['xtls-rprx-vision'].includes(proxy.flow)
@@ -919,6 +1011,9 @@ export default function singbox_Producer() {
                                     `Platform sing-box does not support proxy type: ${proxy.type} with flow ${proxy.flow}`,
                                 );
                             }
+                            break;
+                        case 'naive':
+                            list.push(naiveParser(proxy));
                             break;
                         case 'hysteria':
                             list.push(hysteriaParser(proxy));

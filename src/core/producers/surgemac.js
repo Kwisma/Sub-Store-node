@@ -1,7 +1,7 @@
 import { Base64 } from 'js-base64';
-import { isPresent, isIPv4, isIPv6 } from '../utils/index.js';
+import { isIPv4, isIPv6 } from '../utils/index.js';
 import { $ } from '../utils/log.js';
-import { Result } from './utils.js';
+import { Result, isPresent } from './utils.js';
 import Surge_Producer from './surge.js';
 import ClashMeta_Producer from './clashmeta.js';
 
@@ -60,6 +60,9 @@ function external(proxy) {
         `,no-error-alert=${proxy['no-error-alert']}`,
         'no-error-alert',
     );
+
+    // udp
+    result.appendIfPresent(`,udp-relay=${proxy.udp}`, 'udp');
 
     // tfo
     if (isPresent(proxy, 'tfo')) {
@@ -129,6 +132,7 @@ function mihomo(proxy, type, opts) {
         const external_proxy = {
             name: proxy.name,
             type: 'external',
+            udp: true,
             exec: proxy._exec || '/usr/local/bin/mihomo',
             'local-port': localPort,
             args: [

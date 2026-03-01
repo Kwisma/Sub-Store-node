@@ -1,5 +1,6 @@
 import { isPresent } from '../utils/index.js';
 import { $ } from '../utils/log.js';
+
 export default function Clash_Producer() {
     const type = 'ALL';
     const produce = (proxies, type, opts = {}) => {
@@ -44,6 +45,11 @@ export default function Clash_Producer() {
                     (proxy.type === 'vless' &&
                         (typeof proxy.flow !== 'undefined' ||
                             proxy['reality-opts']))
+                ) {
+                    return false;
+                } else if (
+                    ['ws'].includes(proxy.network) &&
+                    proxy['ws-opts']?.['v2ray-http-upgrade']
                 ) {
                     return false;
                 } else if (proxy['underlying-proxy'] || proxy['dialer-proxy']) {
@@ -168,6 +174,8 @@ export default function Clash_Producer() {
                         'hysteria2',
                         'juicity',
                         'anytls',
+                        'trust-tunnel',
+                        'naive',
                     ].includes(proxy.type)
                 ) {
                     delete proxy.tls;
@@ -206,9 +214,9 @@ export default function Clash_Producer() {
         return type === 'internal'
             ? list
             : 'proxies:\n' +
-            list
-                .map((proxy) => '  - ' + JSON.stringify(proxy) + '\n')
-                .join('');
+                  list
+                      .map((proxy) => '  - ' + JSON.stringify(proxy) + '\n')
+                      .join('');
     };
     return { type, produce };
 }

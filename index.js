@@ -28,13 +28,14 @@ export default {
 
 /**
  * 返回使用说明
+ * 同步更新到 Sub-Store ：https://github.com/sub-store-org/Sub-Store/commit/dd2ed938e376a225e08e9d498098466b9175b045
  * @returns {Response} 包含使用说明的JSON响应
  */
 function renderUsageInstructions() {
     return new Response(
         JSON.stringify(
             {
-                version: 'SubStore v2.20.19',
+                version: 'SubStore v2.21.32',
                 message: '这是一个基于 cloudflare workers 的 sub-store 节点转换工具，仅转换节点用',
                 usage: {
                     target: '输出类型：{singbox|mihomo|v2ray|base64|qx|QX|QuantumultX|surge|Surge|SurgeMac|Loon|Clash|meta|clashmeta|clash.meta|Clash.Meta|ClashMeta|Mihomo|uri|URI|json|JSON|stash|Stash|shadowrocket|Shadowrocket|ShadowRocket|surfboard|Surfboard|egern|Egern}',

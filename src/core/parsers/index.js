@@ -43,7 +43,7 @@ function URI_PROXY() {
         // eslint-disable-next-line no-unused-vars
         let [__, type, tls, username, password, server, port, query, name] =
             line.match(
-                /^(socks5|http|http)(\+tls|s)?:\/\/(?:(.*?):(.*?)@)?(.*?)(?::(\d+?))?(\?.*?)?(?:#(.*?))?$/,
+                /^(socks5|http|http)(\+tls|s)?:\/\/(?:(.*?):(.*?)@)?(.*?)(?::(\d+?))?\/?(\?.*?)?(?:#(.*?))?$/,
             );
         if (port) {
             port = parseInt(port, 10);
@@ -121,7 +121,6 @@ function URI_SOCKS() {
 // Parse SS URI format (only supports new SIP002, legacy format is depreciated).
 // reference: https://github.com/shadowsocks/shadowsocks-org/wiki/SIP002-URI-Scheme
 function URI_SS() {
-    // TODO: 暂不支持 httpupgrade
     const name = 'URI SS Parser';
     const test = (line) => {
         return /^ss:\/\//.test(line);
@@ -174,6 +173,93 @@ function URI_SS() {
             const parsed = content.match(/(\?.*)$/);
             query = parsed[1];
         }
+        const params = {};
+        for (const addon of query.replace(/^\?/, '').split('&')) {
+            if (addon) {
+                const [key, valueRaw] = addon.split('=');
+                let value = valueRaw;
+                value = decodeURIComponent(valueRaw);
+                params[key] = value;
+            }
+        }
+        proxy.tls = params.security && params.security !== 'none';
+        proxy['skip-cert-verify'] = !!params['allowInsecure'];
+        proxy.sni = params['sni'] || params['peer'];
+        proxy['client-fingerprint'] = params.fp;
+        proxy.alpn = params.alpn
+            ? decodeURIComponent(params.alpn).split(',')
+            : undefined;
+
+        if (params['ws']) {
+            proxy.network = 'ws';
+            _.set(proxy, 'ws-opts.path', params['wspath']);
+        }
+
+        if (params['type']) {
+            let httpupgrade;
+            proxy.network = params['type'];
+            if (proxy.network === 'httpupgrade') {
+                proxy.network = 'ws';
+                httpupgrade = true;
+            }
+            if (['grpc'].includes(proxy.network)) {
+                proxy[proxy.network + '-opts'] = {
+                    'grpc-service-name': params['serviceName'],
+                    '_grpc-type': params['mode'],
+                    '_grpc-authority': params['authority'],
+                };
+            } else {
+                if (params['path']) {
+                    _.set(
+                        proxy,
+                        proxy.network + '-opts.path',
+                        decodeURIComponent(params['path']),
+                    );
+                }
+                if (params['host']) {
+                    _.set(
+                        proxy,
+                        proxy.network + '-opts.headers.Host',
+                        decodeURIComponent(params['host']),
+                    );
+                }
+                if (httpupgrade) {
+                    _.set(
+                        proxy,
+                        proxy.network + '-opts.v2ray-http-upgrade',
+                        true,
+                    );
+                    _.set(
+                        proxy,
+                        proxy.network + '-opts.v2ray-http-upgrade-fast-open',
+                        true,
+                    );
+                }
+            }
+            if (['reality'].includes(params.security)) {
+                const opts = {};
+                if (params.pbk) {
+                    opts['public-key'] = params.pbk;
+                }
+                if (params.sid) {
+                    opts['short-id'] = params.sid;
+                }
+                if (params.spx) {
+                    opts['_spider-x'] = params.spx;
+                }
+                if (params.mode) {
+                    proxy._mode = params.mode;
+                }
+                if (params.extra) {
+                    proxy._extra = params.extra;
+                }
+                if (Object.keys(opts).length > 0) {
+                    _.set(proxy, params.security + '-opts', opts);
+                }
+            }
+        }
+
+        proxy.udp = !!params['udp'];
 
         const serverAndPort = serverAndPortArray[1];
         const portIdx = serverAndPort.lastIndexOf(':');
@@ -654,6 +740,9 @@ function URI_VLESS() {
         proxy['client-fingerprint'] = params.fp;
         proxy.alpn = params.alpn ? params.alpn.split(',') : undefined;
         proxy['skip-cert-verify'] = /(TRUE)|1/i.test(params.allowInsecure);
+        proxy._echConfigList = getIfPresent(params.ech);
+        proxy._pcs = getIfPresent(params.pcs);
+        proxy._h2 = /(TRUE)|1/i.test(params.h2);
 
         if (['reality'].includes(params.security)) {
             const opts = {};
@@ -688,6 +777,7 @@ function URI_VLESS() {
         if (['websocket'].includes(proxy.network)) {
             proxy.network = 'ws';
         }
+
         if (proxy.network && !['tcp', 'none'].includes(proxy.network)) {
             const opts = {};
             const host = params.host ?? params.obfsParam;
@@ -743,6 +833,12 @@ function URI_VLESS() {
             if (params.extra) {
                 proxy._extra = params.extra;
             }
+        }
+        if (params.encryption) {
+            proxy.encryption = params.encryption;
+        }
+        if (params.pqv) {
+            proxy._pqv = params.pqv;
         }
 
         return proxy;
@@ -1167,8 +1263,12 @@ function Clash_All() {
         }
         if (
             ![
+                'trust-tunnel',
+                'naive',
                 'anytls',
                 'mieru',
+                'masque',
+                'sudoku',
                 'juicity',
                 'ss',
                 'ssr',
@@ -1490,6 +1590,22 @@ function Surge_Direct() {
     const parse = (line) => getSurgeParser().parse(line);
     return { name, test, parse };
 }
+function Surge_Anytls() {
+    const name = 'Surge Anytls Parser';
+    const test = (line) => {
+        return /^.*=\s*anytls/.test(line.split(',')[0]);
+    };
+    const parse = (line) => getSurgeParser().parse(line);
+    return { name, test, parse };
+}
+function Surge_TrustTunnel() {
+    const name = 'Surge TrustTunnel Parser';
+    const test = (line) => {
+        return /^.*=\s*trust-tunnel/.test(line.split(',')[0]);
+    };
+    const parse = (line) => getSurgeParser().parse(line);
+    return { name, test, parse };
+}
 function Surge_SSH() {
     const name = 'Surge SSH Parser';
     const test = (line) => {
@@ -1683,6 +1799,8 @@ export default [
     URI_AnyTLS(),
     Clash_All(),
     Surge_Direct(),
+    Surge_Anytls(),
+    Surge_TrustTunnel(),
     Surge_SSH(),
     Surge_SS(),
     Surge_VMess(),

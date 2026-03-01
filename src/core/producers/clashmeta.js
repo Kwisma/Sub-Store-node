@@ -16,7 +16,9 @@ export default function ClashMeta_Producer() {
                 if (opts['include-unsupported-proxy']) return true;
                 if (proxy.type === 'snell' && proxy.version >= 4) {
                     return false;
-                } else if (['juicity'].includes(proxy.type)) {
+                } else if (
+                    ['trust-tunnel', 'juicity', 'naive'].includes(proxy.type)
+                ) {
                     return false;
                 } else if (
                     ['ss'].includes(proxy.type) &&
@@ -67,10 +69,16 @@ export default function ClashMeta_Producer() {
                             proxy['reality-opts']))
                 ) {
                     return false;
+                } else if (['xhttp'].includes(proxy.network)) {
+                    return false;
                 }
                 return true;
             })
             .map((proxy) => {
+                if (['trojan', 'vmess', 'vless'].includes(proxy.type)) {
+                    proxy['client-fingerprint'] =
+                        proxy['client-fingerprint'] || 'chrome';
+                }
                 if (proxy.type === 'vmess') {
                     // handle vmess aead
                     if (isPresent(proxy, 'aead')) {
@@ -102,9 +110,10 @@ export default function ClashMeta_Producer() {
                         proxy.alpn = Array.isArray(proxy.alpn)
                             ? proxy.alpn
                             : [proxy.alpn];
-                    } else {
-                        proxy.alpn = ['h3'];
                     }
+                    //  else {
+                    //     proxy.alpn = ['h3'];
+                    // }
                     if (
                         isPresent(proxy, 'tfo') &&
                         !isPresent(proxy, 'fast-open')
@@ -242,6 +251,8 @@ export default function ClashMeta_Producer() {
                         'hysteria2',
                         'juicity',
                         'anytls',
+                        'trust-tunnel',
+                        'naive',
                     ].includes(proxy.type)
                 ) {
                     delete proxy.tls;

@@ -1,4 +1,4 @@
-import { isPresent } from '../utils/index.js';
+import { isPresent } from './utils.js';
 
 export default function Shadowrocket_Producer() {
     const type = 'ALL';
@@ -8,7 +8,31 @@ export default function Shadowrocket_Producer() {
                 if (opts['include-unsupported-proxy']) return true;
                 if (proxy.type === 'snell' && proxy.version >= 4) {
                     return false;
-                } else if (['mieru'].includes(proxy.type)) {
+                } else if (
+                    [
+                        'trust-tunnel',
+                        'mieru',
+                        'sudoku',
+                        'naive',
+                        'masque',
+                    ].includes(proxy.type)
+                ) {
+                    return false;
+                } else if (
+                    proxy.encryption &&
+                    proxy.encryption !== 'none' &&
+                    ['vless'].includes(proxy.type)
+                ) {
+                    return false;
+                } else if (
+                    ['anytls'].includes(proxy.type) &&
+                    proxy.network &&
+                    (!['tcp'].includes(proxy.network) ||
+                        (['tcp'].includes(proxy.network) &&
+                            proxy['reality-opts']))
+                ) {
+                    return false;
+                } else if (['xhttp'].includes(proxy.network)) {
                     return false;
                 }
                 return true;
@@ -45,9 +69,10 @@ export default function Shadowrocket_Producer() {
                         proxy.alpn = Array.isArray(proxy.alpn)
                             ? proxy.alpn
                             : [proxy.alpn];
-                    } else {
-                        proxy.alpn = ['h3'];
                     }
+                    //  else {
+                    //     proxy.alpn = ['h3'];
+                    // }
                     if (
                         isPresent(proxy, 'tfo') &&
                         !isPresent(proxy, 'fast-open')
@@ -126,14 +151,6 @@ export default function Shadowrocket_Producer() {
                         delete proxy['shadow-tls-sni'];
                         delete proxy['shadow-tls-version'];
                     }
-                } else if (
-                    ['anytls'].includes(proxy.type) &&
-                    proxy.network &&
-                    (!['tcp'].includes(proxy.network) ||
-                        (['tcp'].includes(proxy.network) &&
-                            proxy['reality-opts']))
-                ) {
-                    return false;
                 }
 
                 if (
@@ -209,6 +226,8 @@ export default function Shadowrocket_Producer() {
                         'hysteria2',
                         'juicity',
                         'anytls',
+                        'trust-tunnel',
+                        'naive',
                     ].includes(proxy.type)
                 ) {
                     delete proxy.tls;

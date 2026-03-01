@@ -1,10 +1,17 @@
-import { isPresent } from '../utils/index.js';
-import { Result } from './utils.js';
+import { isPresent, Result } from './utils.js';
 const targetPlatform = 'QX';
 
 export default function QX_Producer() {
     // eslint-disable-next-line no-unused-vars
     const produce = (proxy, type, opts = {}) => {
+        if (
+            ['ws'].includes(proxy.network) &&
+            proxy['ws-opts']?.['v2ray-http-upgrade']
+        ) {
+            throw new Error(
+                `Platform ${targetPlatform} does not support network ${proxy.network} with http upgrade`,
+            );
+        }
         switch (proxy.type) {
             case 'ss':
                 return shadowsocks(proxy);
@@ -25,7 +32,25 @@ export default function QX_Producer() {
             `Platform ${targetPlatform} does not support proxy type: ${proxy.type}`,
         );
     };
-    return { produce };
+    return {
+        produce: (proxy, type, opts = {}) => {
+            let result = produce(proxy, type, opts);
+            if (proxy.flow && proxy.flow !== 'xtls-rprx-vision') {
+                throw new Error(
+                    `Platform ${targetPlatform} does not support flow ${proxy.flow}`,
+                );
+            }
+            if (proxy['reality-opts']) {
+                if (proxy['reality-opts']['public-key']) {
+                    result = `${result},reality-base64-pubkey=${proxy['reality-opts']['public-key']}`;
+                }
+                if (proxy['reality-opts']['short-id']) {
+                    result = `${result},reality-hex-shortid=${proxy['reality-opts']['short-id']}`;
+                }
+            }
+            return result;
+        },
+    };
 }
 
 function shadowsocks(proxy) {
@@ -215,7 +240,7 @@ function trojan(proxy) {
                 `,obfs-host=${proxy['ws-opts']?.headers?.Host}`,
                 'ws-opts.headers.Host',
             );
-        } else {
+        } else if (!['tcp'].includes(proxy.network)) {
             throw new Error(`network ${proxy.network} is unsupported`);
         }
     }
@@ -293,13 +318,16 @@ function vmess(proxy) {
     if (needTls(proxy)) {
         proxy.tls = true;
     }
+
     if (isPresent(proxy, 'network')) {
         if (proxy.network === 'ws') {
             if (proxy.tls) append(`,obfs=wss`);
             else append(`,obfs=ws`);
         } else if (proxy.network === 'http') {
             append(`,obfs=http`);
-        } else {
+        } else if (['tcp'].includes(proxy.network)) {
+            if (proxy.tls) append(`,obfs=over-tls`);
+        } else if (!['tcp'].includes(proxy.network)) {
             throw new Error(`network ${proxy.network} is unsupported`);
         }
         let transportPath = proxy[`${proxy.network}-opts`]?.path;
@@ -374,10 +402,8 @@ function vmess(proxy) {
     return result.toString();
 }
 function vless(proxy) {
-    if (typeof proxy.flow !== 'undefined' || proxy['reality-opts']) {
-        throw new Error(`VLESS XTLS/REALITY is not supported`);
-    }
-
+    if (proxy.encryption && proxy.encryption !== 'none')
+        throw new Error(`VLESS encryption is not supported`);
     const result = new Result(proxy);
     const append = result.append.bind(result);
     const appendIfPresent = result.appendIfPresent.bind(result);
@@ -456,6 +482,8 @@ function vless(proxy) {
         );
         appendIfPresent(`,tls-host=${proxy.sni}`, 'sni');
     }
+
+    appendIfPresent(`,vless-flow=${proxy.flow}`, 'flow');
 
     // tfo
     appendIfPresent(`,fast-open=${proxy.tfo}`, 'tfo');

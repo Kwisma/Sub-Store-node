@@ -1,7 +1,7 @@
 /* eslint-disable no-case-declarations */
 const targetPlatform = 'Loon';
-import { Result } from './utils.js';
-import { isPresent, isIPv4, isIPv6 } from '../utils/index.js';
+import { isPresent, Result } from './utils.js';
+import { isIPv4, isIPv6 } from '../utils/index.js';
 
 const ipVersions = {
     dual: 'dual',
@@ -13,6 +13,14 @@ const ipVersions = {
 
 export default function Loon_Producer() {
     const produce = (proxy, type, opts = {}) => {
+        if (
+            ['ws'].includes(proxy.network) &&
+            proxy['ws-opts']?.['v2ray-http-upgrade']
+        ) {
+            throw new Error(
+                `Platform ${targetPlatform} does not support network ${proxy.network} with http upgrade`,
+            );
+        }
         switch (proxy.type) {
             case 'ss':
                 return shadowsocks(proxy);
@@ -77,6 +85,14 @@ function shadowsocks(proxy) {
     // obfs
     if (isPresent(proxy, 'plugin')) {
         if (proxy.plugin === 'obfs') {
+            if (
+                proxy['plugin-opts']?.mode &&
+                proxy.cipher.startsWith('2022-')
+            ) {
+                throw new Error(
+                    `${proxy.cipher} ${proxy.plugin} is not supported`,
+                );
+            }
             result.append(`,obfs-name=${proxy['plugin-opts'].mode}`);
             result.appendIfPresent(
                 `,obfs-host=${proxy['plugin-opts'].host}`,
@@ -390,6 +406,8 @@ function vmess(proxy) {
 }
 
 function vless(proxy) {
+    if (proxy.encryption && proxy.encryption !== 'none')
+        throw new Error(`VLESS encryption is not supported`);
     let isXtls = false;
     const isReality = !!proxy['reality-opts'];
 
@@ -617,8 +635,10 @@ function wireguard(proxy) {
         presharedKey = `,preshared-key="${presharedKey}"`;
     }
     result.append(
-        `,peers=[{public-key="${proxy['public-key']}",allowed-ips="${allowedIps ?? '0.0.0.0/0,::/0'
-        }",endpoint=${proxy.server}:${proxy.port}${reserved ?? ''}${presharedKey ?? ''
+        `,peers=[{public-key="${proxy['public-key']}",allowed-ips="${
+            allowedIps ?? '0.0.0.0/0,::/0'
+        }",endpoint=${proxy.server}:${proxy.port}${reserved ?? ''}${
+            presharedKey ?? ''
         }}]`,
     );
     const ip_version = ipVersions[proxy['ip-version']] || proxy['ip-version'];

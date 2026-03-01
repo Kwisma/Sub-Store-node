@@ -1,5 +1,5 @@
-import { isPresent, isNotBlank, getIfNotBlank } from '../utils/index.js';
-import { Result } from './utils.js';
+import { isNotBlank, getIfNotBlank } from '../utils/index.js';
+import { Result, isPresent } from './utils.js';
 import { $ } from '../utils/log.js';
 const targetPlatform = 'Surge';
 
@@ -13,13 +13,21 @@ const ipVersions = {
 
 export default function Surge_Producer() {
     const produce = (proxy, type, opts = {}) => {
+        if (
+            ['ws'].includes(proxy.network) &&
+            proxy['ws-opts']?.['v2ray-http-upgrade']
+        ) {
+            throw new Error(
+                `Platform ${targetPlatform} does not support network ${proxy.network} with http upgrade`,
+            );
+        }
         proxy.name = proxy.name.replace(/=|,/g, '');
         if (proxy.ports) {
             proxy.ports = String(proxy.ports);
         }
         switch (proxy.type) {
             case 'ss':
-                return shadowsocks(proxy, opts['include-unsupported-proxy']);
+                return shadowsocks(proxy);
             case 'trojan':
                 return trojan(proxy);
             case 'vmess':
@@ -37,13 +45,32 @@ export default function Surge_Producer() {
             case 'wireguard-surge':
                 return wireguard_surge(proxy);
             case 'hysteria2':
-                return hysteria2(proxy);
+                return hysteria2(proxy, opts['include-unsupported-proxy']);
             case 'ssh':
                 return ssh(proxy);
         }
 
         if (opts['include-unsupported-proxy'] && proxy.type === 'wireguard') {
             return wireguard(proxy);
+        }
+        if (opts['include-unsupported-proxy'] && proxy.type === 'anytls') {
+            if (
+                proxy.network &&
+                (!['tcp'].includes(proxy.network) ||
+                    (['tcp'].includes(proxy.network) && proxy['reality-opts']))
+            ) {
+                throw new Error(
+                    `Platform ${targetPlatform} does not support proxy type ${proxy.type} with network or reality`,
+                );
+            }
+
+            return anytls(proxy);
+        }
+        if (
+            opts['include-unsupported-proxy'] &&
+            proxy.type === 'trust-tunnel'
+        ) {
+            return trust_tunnel(proxy);
         }
         throw new Error(
             `Platform ${targetPlatform} does not support proxy type: ${proxy.type}`,
@@ -143,6 +170,7 @@ function shadowsocks(proxy) {
         `,interface=${proxy['interface-name']}`,
         'interface-name',
     );
+    result.appendIfPresent(`,interface=${proxy['interface']}`, 'interface');
 
     // shadow-tls
     if (isPresent(proxy, 'shadow-tls-password')) {
@@ -250,6 +278,7 @@ function trojan(proxy) {
         `,interface=${proxy['interface-name']}`,
         'interface-name',
     );
+    result.appendIfPresent(`,interface=${proxy['interface']}`, 'interface');
 
     // shadow-tls
     if (isPresent(proxy, 'shadow-tls-password')) {
@@ -273,6 +302,137 @@ function trojan(proxy) {
         `,underlying-proxy=${proxy['underlying-proxy']}`,
         'underlying-proxy',
     );
+
+    return result.toString();
+}
+
+function anytls(proxy) {
+    const result = new Result(proxy);
+    result.append(`${proxy.name}=${proxy.type},${proxy.server},${proxy.port}`);
+    result.appendIfPresent(`,password="${proxy.password}"`, 'password');
+
+    const ip_version = ipVersions[proxy['ip-version']] || proxy['ip-version'];
+    result.appendIfPresent(`,ip-version=${ip_version}`, 'ip-version');
+
+    result.appendIfPresent(
+        `,no-error-alert=${proxy['no-error-alert']}`,
+        'no-error-alert',
+    );
+
+    // tls fingerprint
+    result.appendIfPresent(
+        `,server-cert-fingerprint-sha256=${proxy['tls-fingerprint']}`,
+        'tls-fingerprint',
+    );
+
+    // tls verification
+    result.appendIfPresent(`,sni=${proxy.sni}`, 'sni');
+    result.appendIfPresent(
+        `,skip-cert-verify=${proxy['skip-cert-verify']}`,
+        'skip-cert-verify',
+    );
+
+    // tfo
+    result.appendIfPresent(`,tfo=${proxy.tfo}`, 'tfo');
+
+    // udp
+    result.appendIfPresent(`,udp-relay=${proxy.udp}`, 'udp');
+
+    // test-url
+    result.appendIfPresent(`,test-url=${proxy['test-url']}`, 'test-url');
+    result.appendIfPresent(
+        `,test-timeout=${proxy['test-timeout']}`,
+        'test-timeout',
+    );
+    result.appendIfPresent(`,test-udp=${proxy['test-udp']}`, 'test-udp');
+    result.appendIfPresent(`,hybrid=${proxy['hybrid']}`, 'hybrid');
+    result.appendIfPresent(`,tos=${proxy['tos']}`, 'tos');
+    result.appendIfPresent(
+        `,allow-other-interface=${proxy['allow-other-interface']}`,
+        'allow-other-interface',
+    );
+    result.appendIfPresent(
+        `,interface=${proxy['interface-name']}`,
+        'interface-name',
+    );
+    result.appendIfPresent(`,interface=${proxy['interface']}`, 'interface');
+
+    // block-quic
+    result.appendIfPresent(`,block-quic=${proxy['block-quic']}`, 'block-quic');
+
+    // underlying-proxy
+    result.appendIfPresent(
+        `,underlying-proxy=${proxy['underlying-proxy']}`,
+        'underlying-proxy',
+    );
+
+    // reuse
+    result.appendIfPresent(`,reuse=${proxy['reuse']}`, 'reuse');
+
+    return result.toString();
+}
+function trust_tunnel(proxy) {
+    const result = new Result(proxy);
+    result.append(`${proxy.name}=${proxy.type},${proxy.server},${proxy.port}`);
+    result.appendIfPresent(`,password="${proxy.password}"`, 'password');
+
+    const ip_version = ipVersions[proxy['ip-version']] || proxy['ip-version'];
+    result.appendIfPresent(`,ip-version=${ip_version}`, 'ip-version');
+
+    result.appendIfPresent(
+        `,no-error-alert=${proxy['no-error-alert']}`,
+        'no-error-alert',
+    );
+
+    // tls fingerprint
+    result.appendIfPresent(
+        `,server-cert-fingerprint-sha256=${proxy['tls-fingerprint']}`,
+        'tls-fingerprint',
+    );
+
+    // tls verification
+    result.appendIfPresent(`,sni=${proxy.sni}`, 'sni');
+    result.appendIfPresent(
+        `,skip-cert-verify=${proxy['skip-cert-verify']}`,
+        'skip-cert-verify',
+    );
+
+    // tfo
+    result.appendIfPresent(`,tfo=${proxy.tfo}`, 'tfo');
+
+    // udp
+    result.appendIfPresent(`,udp-relay=${proxy.udp}`, 'udp');
+
+    // test-url
+    result.appendIfPresent(`,test-url=${proxy['test-url']}`, 'test-url');
+    result.appendIfPresent(
+        `,test-timeout=${proxy['test-timeout']}`,
+        'test-timeout',
+    );
+    result.appendIfPresent(`,test-udp=${proxy['test-udp']}`, 'test-udp');
+    result.appendIfPresent(`,hybrid=${proxy['hybrid']}`, 'hybrid');
+    result.appendIfPresent(`,tos=${proxy['tos']}`, 'tos');
+    result.appendIfPresent(
+        `,allow-other-interface=${proxy['allow-other-interface']}`,
+        'allow-other-interface',
+    );
+    result.appendIfPresent(
+        `,interface=${proxy['interface-name']}`,
+        'interface-name',
+    );
+    result.appendIfPresent(`,interface=${proxy['interface']}`, 'interface');
+
+    // block-quic
+    result.appendIfPresent(`,block-quic=${proxy['block-quic']}`, 'block-quic');
+
+    // underlying-proxy
+    result.appendIfPresent(
+        `,underlying-proxy=${proxy['underlying-proxy']}`,
+        'underlying-proxy',
+    );
+
+    // reuse
+    result.appendIfPresent(`,reuse=${proxy['reuse']}`, 'reuse');
 
     return result.toString();
 }
@@ -339,6 +499,7 @@ function vmess(proxy, includeUnsupportedProxy) {
         `,interface=${proxy['interface-name']}`,
         'interface-name',
     );
+    result.appendIfPresent(`,interface=${proxy['interface']}`, 'interface');
 
     // shadow-tls
     if (isPresent(proxy, 'shadow-tls-password')) {
@@ -419,6 +580,7 @@ function ssh(proxy) {
         `,interface=${proxy['interface-name']}`,
         'interface-name',
     );
+    result.appendIfPresent(`,interface=${proxy['interface']}`, 'interface');
 
     // block-quic
     result.appendIfPresent(`,block-quic=${proxy['block-quic']}`, 'block-quic');
@@ -485,6 +647,7 @@ function http(proxy) {
         `,interface=${proxy['interface-name']}`,
         'interface-name',
     );
+    result.appendIfPresent(`,interface=${proxy['interface']}`, 'interface');
 
     // shadow-tls
     if (isPresent(proxy, 'shadow-tls-password')) {
@@ -547,6 +710,7 @@ function direct(proxy) {
         `,interface=${proxy['interface-name']}`,
         'interface-name',
     );
+    result.appendIfPresent(`,interface=${proxy['interface']}`, 'interface');
 
     // block-quic
     result.appendIfPresent(`,block-quic=${proxy['block-quic']}`, 'block-quic');
@@ -613,6 +777,7 @@ function socks5(proxy) {
         `,interface=${proxy['interface-name']}`,
         'interface-name',
     );
+    result.appendIfPresent(`,interface=${proxy['interface']}`, 'interface');
 
     // shadow-tls
     if (isPresent(proxy, 'shadow-tls-password')) {
@@ -691,6 +856,7 @@ function snell(proxy) {
         `,interface=${proxy['interface-name']}`,
         'interface-name',
     );
+    result.appendIfPresent(`,interface=${proxy['interface']}`, 'interface');
 
     // shadow-tls
     if (isPresent(proxy, 'shadow-tls-password')) {
@@ -793,6 +959,7 @@ function tuic(proxy) {
         `,interface=${proxy['interface-name']}`,
         'interface-name',
     );
+    result.appendIfPresent(`,interface=${proxy['interface']}`, 'interface');
 
     // shadow-tls
     if (isPresent(proxy, 'shadow-tls-password')) {
@@ -870,6 +1037,7 @@ function wireguard(proxy) {
         `,interface=${proxy['interface-name']}`,
         'interface-name',
     );
+    result.appendIfPresent(`,interface=${proxy['interface']}`, 'interface');
 
     // shadow-tls
     if (isPresent(proxy, 'shadow-tls-password')) {
@@ -919,9 +1087,7 @@ private-key = ${proxy['private-key']}`);
         ? proxy.reserved.join('/')
         : proxy.reserved;
     let presharedKey = proxy['preshared-key'] ?? proxy['pre-shared-key'];
-    if (presharedKey) {
-        presharedKey = `,preshared-key="${presharedKey}"`;
-    }
+
     const peer = {
         'public-key': proxy['public-key'],
         'allowed-ips': allowedIps ? `"${allowedIps}"` : undefined,
@@ -972,6 +1138,7 @@ function wireguard_surge(proxy) {
         `,interface=${proxy['interface-name']}`,
         'interface-name',
     );
+    result.appendIfPresent(`,interface=${proxy['interface']}`, 'interface');
 
     // shadow-tls
     if (isPresent(proxy, 'shadow-tls-password')) {
@@ -999,10 +1166,17 @@ function wireguard_surge(proxy) {
     return result.toString();
 }
 
-function hysteria2(proxy) {
-    if (proxy.obfs || proxy['obfs-password']) {
-        throw new Error(`obfs is unsupported`);
+function hysteria2(proxy, includeUnsupportedProxy) {
+    if (includeUnsupportedProxy) {
+        if (proxy['obfs-password'] && proxy.obfs != 'salamander') {
+            throw new Error(`only salamander obfs is supported`);
+        }
+    } else {
+        if (proxy.obfs || proxy['obfs-password']) {
+            throw new Error(`obfs is unsupported`);
+        }
     }
+
     const result = new Result(proxy);
     result.append(`${proxy.name}=hysteria2,${proxy.server},${proxy.port}`);
 
@@ -1016,6 +1190,10 @@ function hysteria2(proxy) {
         `,port-hopping-interval=${proxy['hop-interval']}`,
         'hop-interval',
     );
+
+    if (proxy['obfs-password'] && proxy.obfs == 'salamander') {
+        result.append(`,salamander-password="${proxy['obfs-password']}"`);
+    }
 
     const ip_version = ipVersions[proxy['ip-version']] || proxy['ip-version'];
     result.appendIfPresent(`,ip-version=${ip_version}`, 'ip-version');
@@ -1060,6 +1238,7 @@ function hysteria2(proxy) {
         `,interface=${proxy['interface-name']}`,
         'interface-name',
     );
+    result.appendIfPresent(`,interface=${proxy['interface']}`, 'interface');
 
     // shadow-tls
     if (isPresent(proxy, 'shadow-tls-password')) {
@@ -1123,9 +1302,14 @@ function handleTransport(result, proxy, includeUnsupportedProxy) {
         } else {
             if (includeUnsupportedProxy && ['http'].includes(proxy.network)) {
                 $.info(
-                    `Include Unsupported Proxy: nework ${proxy.network} -> tcp`,
+                    `Include Unsupported Proxy: network ${proxy.network} -> tcp`,
                 );
-            } else {
+            } else if (
+                ['tcp'].includes(proxy.network) &&
+                proxy['reality-opts']
+            ) {
+                throw new Error(`reality is unsupported`);
+            } else if (!['tcp'].includes(proxy.network)) {
                 throw new Error(`network ${proxy.network} is unsupported`);
             }
         }

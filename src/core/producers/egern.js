@@ -9,6 +9,7 @@ export default function Egern_Producer() {
                 if (
                     ![
                         'http',
+                        'https',
                         'socks5',
                         'ss',
                         'trojan',
@@ -16,6 +17,10 @@ export default function Egern_Producer() {
                         'vless',
                         'vmess',
                         'tuic',
+                        'wireguard',
+                        ...(opts['include-unsupported-proxy']
+                            ? ['anytls']
+                            : []),
                     ].includes(proxy.type) ||
                     (proxy.type === 'ss' &&
                         ((proxy.plugin === 'obfs' &&
@@ -59,17 +64,28 @@ export default function Egern_Producer() {
                         !['http', 'ws', 'tcp'].includes(proxy.network) &&
                         proxy.network) ||
                     (proxy.type === 'vless' &&
-                        ((!opts['include-unsupported-proxy'] &&
-                            (typeof proxy.flow !== 'undefined' ||
-                                proxy['reality-opts'])) ||
-                            (opts['include-unsupported-proxy'] &&
-                                typeof proxy.flow !== 'undefined' &&
-                                proxy.flow !== 'xtls-rprx-vision') ||
-                            (!['http', 'ws', 'tcp'].includes(proxy.network) &&
-                                proxy.network))) ||
+                        ((!['http', 'ws', 'tcp'].includes(proxy.network) &&
+                            proxy.network) ||
+                            (typeof proxy.flow !== 'undefined' &&
+                                !['xtls-rprx-vision', ''].includes(
+                                    proxy.flow,
+                                )))) ||
                     (proxy.type === 'tuic' &&
                         proxy.token &&
                         proxy.token.length !== 0)
+                ) {
+                    return false;
+                } else if (
+                    ['anytls'].includes(proxy.type) &&
+                    proxy.network &&
+                    (!['tcp'].includes(proxy.network) ||
+                        (['tcp'].includes(proxy.network) &&
+                            proxy['reality-opts']))
+                ) {
+                    return false;
+                } else if (
+                    ['ws'].includes(proxy.network) &&
+                    proxy['ws-opts']?.['v2ray-http-upgrade']
                 ) {
                     return false;
                 }
@@ -89,7 +105,7 @@ export default function Egern_Producer() {
 
                 if (proxy.type === 'http') {
                     proxy = {
-                        type: 'http',
+                        type: proxy.tls ? 'https' : 'http',
                         name: proxy.name,
                         server: proxy.server,
                         port: proxy.port,
@@ -97,6 +113,12 @@ export default function Egern_Producer() {
                         password: proxy.password,
                         tfo: proxy.tfo || proxy['fast-open'],
                         next_hop: proxy.next_hop,
+                        ...(proxy.tls
+                            ? {
+                                  sni: proxy.sni,
+                                  skip_tls_verify: proxy['skip-cert-verify'],
+                              }
+                            : {}),
                     };
                 } else if (proxy.type === 'socks5') {
                     proxy = {
@@ -192,6 +214,20 @@ export default function Egern_Producer() {
                         sni: proxy.sni,
                         skip_tls_verify: proxy['skip-cert-verify'],
                         websocket: proxy.websocket,
+                    };
+                } else if (proxy.type === 'anytls') {
+                    proxy = {
+                        type: 'anytls',
+                        name: proxy.name,
+                        server: proxy.server,
+                        port: proxy.port,
+                        password: proxy.password,
+                        tfo: proxy.tfo || proxy['fast-open'],
+                        udp_relay:
+                            proxy.udp || proxy.udp_relay || proxy.udp_relay,
+                        next_hop: proxy.next_hop,
+                        sni: proxy.sni,
+                        skip_tls_verify: proxy['skip-cert-verify'],
                     };
                 } else if (proxy.type === 'vmess') {
                     // Egern：传输层，支持 ws/wss/http1/http2/tls，不配置则为 tcp
@@ -291,6 +327,8 @@ export default function Egern_Producer() {
                         // skip_tls_verify: proxy['skip-cert-verify'],
                     };
                 } else if (proxy.type === 'vless') {
+                    if (proxy.encryption && proxy.encryption !== 'none')
+                        throw new Error(`VLESS encryption is not supported`);
                     if (proxy.network === 'ws') {
                         proxy.transport = {
                             [proxy.tls ? 'wss' : 'ws']: {
@@ -338,11 +376,11 @@ export default function Egern_Producer() {
                                 skip_tls_verify: proxy.tls
                                     ? proxy['skip-cert-verify']
                                     : undefined,
-                                    reality,
+                                reality,
                             },
                         };
-
                         flow = proxy.flow;
+                        if (flow === '') flow = undefined;
                     }
                     proxy = {
                         type: 'vless',
@@ -360,15 +398,59 @@ export default function Egern_Producer() {
                         // sni: proxy.sni,
                         // skip_tls_verify: proxy['skip-cert-verify'],
                     };
+                } else if (proxy.type === 'wireguard') {
+                    if (Array.isArray(proxy.peers) && proxy.peers.length > 0) {
+                        proxy.server = proxy.peers[0].server;
+                        proxy.port = proxy.peers[0].port;
+                        proxy.ip = proxy.peers[0].ip;
+                        proxy.ipv6 = proxy.peers[0].ipv6;
+                        proxy['public-key'] = proxy.peers[0]['public-key'];
+                        proxy['preshared-key'] =
+                            proxy.peers[0]['pre-shared-key'];
+                        // https://github.com/MetaCubeX/mihomo/blob/0404e35be8736b695eae018a08debb175c1f96e6/docs/config.yaml#L717
+                        proxy['allowed-ips'] = proxy.peers[0]['allowed-ips'];
+                        proxy.reserved = proxy.peers[0].reserved;
+                    }
+                    proxy = {
+                        type: 'wireguard',
+                        name: proxy.name,
+                        local_ipv4: proxy.ip,
+                        local_ipv6: proxy.ipv6,
+                        server: proxy.server,
+                        port: proxy.port,
+                        private_key: proxy['private-key'],
+                        peer_public_key: proxy['public-key'],
+                        preshared_key: proxy['preshared-key'],
+                        reserved: proxy.reserved
+                            ? Array.isArray(proxy.reserved)
+                                ? proxy.reserved
+                                : proxy.reserved
+                                      .split(/\s*\/\s*/)
+                                      .map((item) => item.trim())
+                                      .filter((item) => item.length > 0)
+                            : undefined,
+                        dns_servers: proxy.dns
+                            ? Array.isArray(proxy.dns)
+                                ? proxy.dns
+                                : proxy.dns
+                                      .split(/\s*,\s*/)
+                                      .map((item) => item.trim())
+                                      .filter((item) => item.length > 0)
+                            : undefined,
+                        mtu: proxy.mtu,
+                        keepalive: proxy.keepalive,
+                    };
                 }
                 if (
                     [
                         'http',
+                        'https',
                         'socks5',
                         'ss',
                         'trojan',
                         'vless',
                         'vmess',
+                        'anytls',
                     ].includes(original.type)
                 ) {
                     if (isPresent(original, 'shadow-tls-password')) {
@@ -392,6 +474,33 @@ export default function Egern_Producer() {
                             password: original['plugin-opts'].password,
                             sni: original['plugin-opts'].host,
                         };
+                    }
+                }
+                if (
+                    [
+                        'socks5',
+                        'ss',
+                        'trojan',
+                        'vless',
+                        'vmess',
+                        'wireguard',
+                        'tuic',
+                        'hysteria2',
+                        'anytls',
+                    ].includes(original.type)
+                ) {
+                    if (
+                        ['on', 'true', true, '1', 1].includes(
+                            original['block-quic'],
+                        )
+                    ) {
+                        proxy.block_quic = true;
+                    } else if (
+                        ['off', 'false', false, '0', 0].includes(
+                            original['block-quic'],
+                        )
+                    ) {
+                        proxy.block_quic = false;
                     }
                 }
                 if (
@@ -443,9 +552,9 @@ export default function Egern_Producer() {
         return type === 'internal'
             ? list
             : 'proxies:\n' +
-            list
-                .map((proxy) => '  - ' + JSON.stringify(proxy) + '\n')
-                .join('');
+                  list
+                      .map((proxy) => '  - ' + JSON.stringify(proxy) + '\n')
+                      .join('');
     };
     return { type, produce };
 }

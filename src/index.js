@@ -4,8 +4,6 @@ import { fetchResponse } from './core/utils/download.js';
 import { safeLoad, safeDump } from './core/utils/yaml.js';
 import PROXY_PRODUCERS from './core/producers/index.js';
 
-// 同步更新到 Sub-Store  ：https://github.com/sub-store-org/Sub-Store/commit/85e8320
-
 /**
  * 订阅转换入口
  * @param {Array<string>} urlArray - 输入订阅URL数组

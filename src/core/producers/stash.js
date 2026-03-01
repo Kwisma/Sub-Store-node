@@ -1,5 +1,5 @@
 import { isPresent } from '../utils/index.js';
-import { $ } from '../utils/log.js';
+
 export default function Stash_Producer() {
     const type = 'ALL';
     const produce = (proxies, type, opts = {}) => {
@@ -22,6 +22,7 @@ export default function Stash_Producer() {
                         'hysteria2',
                         'ssh',
                         'juicity',
+                        'anytls',
                     ].includes(proxy.type) ||
                     (proxy.type === 'ss' &&
                         ![
@@ -48,10 +49,26 @@ export default function Stash_Producer() {
                         !['xtls-rprx-vision'].includes(proxy.flow))
                 ) {
                     return false;
-                } else if (proxy['underlying-proxy'] || proxy['dialer-proxy']) {
-                    $.error(
-                        `Stash 暂不支持前置代理字段. 已过滤节点 ${proxy.name}. 请使用 代理的转发链 https://stash.wiki/proxy-protocols/proxy-groups#relay`,
-                    );
+                } else if (
+                    ['anytls'].includes(proxy.type) &&
+                    proxy.network &&
+                    (!['tcp'].includes(proxy.network) ||
+                        (['tcp'].includes(proxy.network) &&
+                            proxy['reality-opts']))
+                ) {
+                    return false;
+                } else if (['xhttp'].includes(proxy.network)) {
+                    return false;
+                } else if (
+                    proxy.encryption &&
+                    proxy.encryption !== 'none' &&
+                    ['vless'].includes(proxy.type)
+                ) {
+                    return false;
+                } else if (
+                    ['ws'].includes(proxy.network) &&
+                    proxy['ws-opts']?.['v2ray-http-upgrade']
+                ) {
                     return false;
                 }
                 return true;
@@ -272,6 +289,8 @@ export default function Stash_Producer() {
                         'hysteria2',
                         'juicity',
                         'anytls',
+                        'trust-tunnel',
+                        'naive',
                     ].includes(proxy.type)
                 ) {
                     delete proxy.tls;
@@ -280,6 +299,11 @@ export default function Stash_Producer() {
                     proxy['server-cert-fingerprint'] = proxy['tls-fingerprint'];
                 }
                 delete proxy['tls-fingerprint'];
+
+                if (proxy['underlying-proxy']) {
+                    proxy['dialer-proxy'] = proxy['underlying-proxy'];
+                }
+                delete proxy['underlying-proxy'];
 
                 if (isPresent(proxy, 'tls') && typeof proxy.tls !== 'boolean') {
                     delete proxy.tls;
@@ -318,9 +342,9 @@ export default function Stash_Producer() {
         return type === 'internal'
             ? list
             : 'proxies:\n' +
-            list
-                .map((proxy) => '  - ' + JSON.stringify(proxy) + '\n')
-                .join('');
+                  list
+                      .map((proxy) => '  - ' + JSON.stringify(proxy) + '\n')
+                      .join('');
     };
     return { type, produce };
 }

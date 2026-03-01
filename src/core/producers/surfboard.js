@@ -1,9 +1,17 @@
-import { isPresent, isNotBlank } from '../utils/index.js';
-import { Result } from './utils.js';
+import { isNotBlank } from '../utils/index.js';
+import { Result, isPresent } from './utils.js';
 const targetPlatform = 'Surfboard';
 
 export default function Surfboard_Producer() {
     const produce = (proxy) => {
+        if (
+            ['ws'].includes(proxy.network) &&
+            proxy['ws-opts']?.['v2ray-http-upgrade']
+        ) {
+            throw new Error(
+                `Platform ${targetPlatform} does not support network ${proxy.network} with http upgrade`,
+            );
+        }
         proxy.name = proxy.name.replace(/=|,/g, '');
         switch (proxy.type) {
             case 'ss':
@@ -16,6 +24,8 @@ export default function Surfboard_Producer() {
                 return http(proxy);
             case 'socks5':
                 return socks5(proxy);
+            case 'anytls':
+                return anytls(proxy);
             case 'wireguard-surge':
                 return wireguard(proxy);
         }
@@ -25,7 +35,29 @@ export default function Surfboard_Producer() {
     };
     return { produce };
 }
+function anytls(proxy) {
+    const result = new Result(proxy);
+    result.append(`${proxy.name}=${proxy.type},${proxy.server},${proxy.port}`);
+    result.appendIfPresent(`,password="${proxy.password}"`, 'password');
 
+    // tls verification
+    result.appendIfPresent(`,sni=${proxy.sni}`, 'sni');
+    result.appendIfPresent(
+        `,skip-cert-verify=${proxy['skip-cert-verify']}`,
+        'skip-cert-verify',
+    );
+
+    // tfo
+    result.appendIfPresent(`,tfo=${proxy.tfo}`, 'tfo');
+
+    // udp
+    result.appendIfPresent(`,udp-relay=${proxy.udp}`, 'udp');
+
+    // reuse
+    result.appendIfPresent(`,reuse=${proxy['reuse']}`, 'reuse');
+
+    return result.toString();
+}
 function shadowsocks(proxy) {
     const result = new Result(proxy);
     result.append(`${proxy.name}=${proxy.type},${proxy.server},${proxy.port}`);
@@ -51,12 +83,14 @@ function shadowsocks(proxy) {
             'salsa20',
             'chacha20',
             'chacha20-ietf',
+            '2022-blake3-aes-128-gcm',
+            '2022-blake3-aes-256-gcm',
         ].includes(proxy.cipher)
     ) {
         throw new Error(`cipher ${proxy.cipher} is not supported`);
     }
     result.append(`,encrypt-method=${proxy.cipher}`);
-    result.appendIfPresent(`,password=${proxy.password}`, 'password');
+    result.appendIfPresent(`,password="${proxy.password}"`, 'password');
 
     // obfs
     if (isPresent(proxy, 'plugin')) {
@@ -217,7 +251,9 @@ function handleTransport(result, proxy) {
                     }
                 }
             }
-        } else {
+        } else if (['tcp'].includes(proxy.network) && proxy['reality-opts']) {
+            throw new Error(`reality is unsupported`);
+        } else if (!['tcp'].includes(proxy.network)) {
             throw new Error(`network ${proxy.network} is unsupported`);
         }
     }

@@ -2,8 +2,10 @@ import { base64EncodeUtf8, base64DecodeUtf8, isBase64 } from './core/utils/base6
 // import { ProxyUtils } from './core/index.js';
 import { ProxyUtils } from './sub/backend/src/core/proxy-utils/index.js';
 import { fetchResponse } from './core/utils/download.js';
-import { safeLoad, safeDump } from './core/utils/yaml.js';
-import PROXY_PRODUCERS from './core/producers/index.js';
+// import { safeLoad, safeDump } from './core/utils/yaml.js';
+import { safeLoad, safeDump } from './sub/backend/src/utils/yaml.js';
+// import PROXY_PRODUCERS from './core/producers/index.js';
+import PROXY_PRODUCERS from './sub/backend/src/core/proxy-utils/producers/index.js';
 
 /**
  * 订阅转换入口

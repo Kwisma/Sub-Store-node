@@ -20,7 +20,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           ref: "main"
-          submodules: recursive   # ✅ 自动拉取子模块
+          submodules: recursive # ✅ 自动拉取子模块
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
@@ -31,9 +31,13 @@ jobs:
         run: |
           npm install -g pnpm
           pnpm i --no-frozen-lockfile
-          # ✅ 安装子模块依赖
-          git submodule foreach --recursive 'pnpm install --no-frozen-lockfile'
-
+          SUB_BACKEND="src/sub/backend"
+          if [ -d "$SUB_BACKEND" ] && [ -f "$SUB_BACKEND/package.json" ]; then
+            echo "Installing dependencies in $SUB_BACKEND ..."
+            pushd "$SUB_BACKEND" || exit 1
+            pnpm install --no-frozen-lockfile
+            popd
+          fi
       - name: Bundle
         run: |
           pnpm build

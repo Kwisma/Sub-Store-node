@@ -12,7 +12,8 @@ const artifacts = [{ src: 'index.js', dest: 'dist/_worker.js' }];
             target: ['es2022'], // 目标环境
             format: 'esm', // 输出格式 CommonJS
             platform: 'browser', // 目标平台为浏览器
-            logLevel: 'error'
+            logLevel: 'error',
+            external: ['buffer','dns-packet','fastestsmallesttextencoderdecoder']
         });
         console.log(`✔️ 打包完成: ${artifact.src} → ${artifact.dest}`);
     }

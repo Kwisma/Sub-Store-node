@@ -1,12 +1,12 @@
 import { base64EncodeUtf8, base64DecodeUtf8, isBase64 } from './core/utils/base64.js';
 // import { ProxyUtils } from './core/index.js';
-import { ProxyUtils } from './sub/backend/src/core/proxy-utils/index.js';
+import { ProxyUtils } from './sub/ba ckend/src/core/proxy-utils/index.js';
 import { fetchResponse } from './core/utils/download.js';
 // import { safeLoad, safeDump } from './core/utils/yaml.js';
 import { safeLoad, safeDump } from './sub/backend/src/utils/yaml.js';
 // import PROXY_PRODUCERS from './core/producers/index.js';
 import PROXY_PRODUCERS from './sub/backend/src/core/proxy-utils/producers/index.js';
-
+const globalNameCount = new Map();
 /**
  * 订阅转换入口
  * @param {Array<string>} urlArray - 输入订阅URL数组
@@ -30,8 +30,9 @@ export default async function processNodeConversion(urlArray, platform) {
     }
     try {
         const processedResults = await Promise.all(
-            urlArray.map(input => processSingleInput(input, platform))
+            urlArray.map((input, index) => processSingleInput(input, platform, index))
         );
+        processedResults.sort((a, b) => a.index - b.index);
         mergeResults(results, processedResults);
     } catch (error) {
         results.status = 500
@@ -46,9 +47,10 @@ export default async function processNodeConversion(urlArray, platform) {
  * 处理单个输入节点
  * @param {string} input - 输入订阅URL
  * @param {string} platform - 目标平台
+ * @param {number} index - 当前处理的输入索引
  * @returns {Promise<{data: any, headers: Object}>} 处理后的结果和响应头
  */
-async function processSingleInput(input, platform) {
+async function processSingleInput(input, platform, index) {
     let data = input;
     let proxies = [];
     let headers = {};
@@ -66,9 +68,10 @@ async function processSingleInput(input, platform) {
         } else {
             proxies = ProxyUtils.parse(data);
         }
+        proxies = deduplicateWithGlobalMap(proxies, globalNameCount);
         data = ProxyUtils.produce(proxies, platform);
     }
-    return { data, headers };
+    return { data, headers, index };
 }
 
 /**
@@ -130,4 +133,18 @@ function mergeResults(results, processedResults) {
     if (results.data.proxies) {
         results.data = safeDump(results.data, { lineWidth: -1 });
     }
+}
+function deduplicateWithGlobalMap(proxies, globalNameCount) {
+    return proxies.map(proxy => {
+        let baseName = proxy.name || 'node';
+        if (globalNameCount.has(baseName)) {
+            const count = globalNameCount.get(baseName) + 1;
+            globalNameCount.set(baseName, count);
+            proxy.name = `${baseName} [${count}]`;
+        } else {
+            globalNameCount.set(baseName, 0);
+            proxy.name = baseName;
+        }
+        return proxy;
+    });
 }

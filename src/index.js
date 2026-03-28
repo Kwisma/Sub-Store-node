@@ -6,7 +6,7 @@ import { fetchResponse } from './core/utils/download.js';
 import { safeLoad, safeDump } from './sub/backend/src/utils/yaml.js';
 // import PROXY_PRODUCERS from './core/producers/index.js';
 import PROXY_PRODUCERS from './sub/backend/src/core/proxy-utils/producers/index.js';
-const globalNameCount = new Map();
+
 /**
  * 订阅转换入口
  * @param {Array<string>} urlArray - 输入订阅URL数组
@@ -29,10 +29,10 @@ export default async function processNodeConversion(urlArray, platform) {
         return results;
     }
     try {
+        const globalNameCount = new Map();
         const processedResults = await Promise.all(
-            urlArray.map((input, index) => processSingleInput(input, platform, index))
+            urlArray.map((input, index) => processSingleInput(input, platform, index, globalNameCount))
         );
-        processedResults.sort((a, b) => a.index - b.index);
         mergeResults(results, processedResults);
     } catch (error) {
         results.status = 500
@@ -48,9 +48,10 @@ export default async function processNodeConversion(urlArray, platform) {
  * @param {string} input - 输入订阅URL
  * @param {string} platform - 目标平台
  * @param {number} index - 当前处理的输入索引
+ * @param {Map} globalNameCount - 名称计数器
  * @returns {Promise<{data: any, headers: Object}>} 处理后的结果和响应头
  */
-async function processSingleInput(input, platform, index) {
+async function processSingleInput(input, platform, index, globalNameCount) {
     let data = input;
     let proxies = [];
     let headers = {};

@@ -1,6 +1,6 @@
 import { base64EncodeUtf8, base64DecodeUtf8, isBase64 } from './core/utils/base64.js';
 // import { ProxyUtils } from './core/index.js';
-import { ProxyUtils } from './sub/ba ckend/src/core/proxy-utils/index.js';
+import { ProxyUtils } from './sub/backend/src/core/proxy-utils/index.js';
 import { fetchResponse } from './core/utils/download.js';
 // import { safeLoad, safeDump } from './core/utils/yaml.js';
 import { safeLoad, safeDump } from './sub/backend/src/utils/yaml.js';

@@ -6,7 +6,8 @@ import { fetchResponse } from './core/utils/download.js';
 import { safeLoad, safeDump } from './sub/backend/src/utils/yaml.js';
 // import PROXY_PRODUCERS from './core/producers/index.js';
 import PROXY_PRODUCERS from './sub/backend/src/core/proxy-utils/producers/index.js';
-
+const data =ProxyUtils.parse('dHJvamFuOi8vYTUxM2RiOTMtMGM3Yi00OTZhLWExNzktNmE3OWUyM2U3NDRmQDEwNC4xNy4xNTIuMTY5OjQ0Mz9zZWN1cml0eT10bHMmc25pPWp5aC1leGsucGFnZXMuZGV2JmZwPWNocm9tZSZ0eXBlPXdzJmhvc3Q9anloLWV4ay5wYWdlcy5kZXYmcGF0aD0lMkYlM0ZlZCUzRDIwNDgmYWxwbj1oMyZlY2g9Y2xvdWRmbGFyZS1lY2guY29tJTJCaHR0cHMlM0ElMkYlMkYyMjMuNS41LjUlMkZkbnMtcXVlcnkjJUU3JUE3JUJCJUU1JThBJUE4LUhLRy00NDMtVHJvamFuLVdTLVRMUw==')
+console.log(data)
 /**
  * 订阅转换入口
  * @param {Array<string>} urlArray - 输入订阅URL数组

@@ -57,7 +57,7 @@ async function processSingleInput(input, platform, index, globalNameCount) {
     let headers = {};
     const isHttpInput = /^https?:\/\//i.test(input);
     if (isHttpInput) {
-        const response = await fetchResponse(input, 'clash.mate');
+        const response = await fetchResponse(input, 'v2ray');
         headers = response?.headers ?? {};
         data = response?.data ?? response;
     }

@@ -35,7 +35,7 @@ function renderUsageInstructions() {
     return new Response(
         JSON.stringify(
             {
-                version: 'SubStore V2.21.64',
+                version: 'SubStore V2.21.65',
                 message: '这是一个基于 cloudflare workers 的 sub-store 节点转换工具，仅转换节点用',
                 usage: {
                     target: '输出类型：{singbox|mihomo|v2ray|base64|qx|QX|QuantumultX|surge|Surge|SurgeMac|Loon|Clash|meta|clashmeta|clash.meta|Clash.Meta|ClashMeta|Mihomo|uri|URI|json|JSON|stash|Stash|shadowrocket|Shadowrocket|ShadowRocket|surfboard|Surfboard|egern|Egern}',

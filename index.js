@@ -633,6 +633,6 @@ function renderUsageInstructions() {
 
 </html>
     `
-    return new Response(data, { status: 200 }
+    return new Response(html, { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
     );
 }

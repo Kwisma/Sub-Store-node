@@ -1,7 +1,7 @@
 import esbuild from 'esbuild';
 import { readFile } from 'fs/promises';
 const pkg = JSON.parse(
-    await readFile(new URL('./package.json', import.meta.url))
+    await readFile(new URL('./src/sub/backend/package.json', import.meta.url))
 );
 const version = pkg.version;
 const artifacts = [{ src: 'index.js', dest: 'dist/_worker.js' }];

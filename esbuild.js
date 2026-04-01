@@ -1,6 +1,10 @@
 import esbuild from 'esbuild';
+import { readFile } from 'fs/promises';
+const pkg = JSON.parse(
+    await readFile(new URL('./package.json', import.meta.url))
+);
+const version = pkg.version;
 const artifacts = [{ src: 'index.js', dest: 'dist/_worker.js' }];
-
 (async () => {
     for (const artifact of artifacts) {
         await esbuild.build({
@@ -12,7 +16,10 @@ const artifacts = [{ src: 'index.js', dest: 'dist/_worker.js' }];
             target: ['es2022'], // 目标环境
             format: 'esm', // 输出格式 CommonJS
             platform: 'browser', // 目标平台为浏览器
-            logLevel: 'error'
+            logLevel: 'error',
+            define: {
+                __VERSION__: `"${version}"`
+            }
         });
         console.log(`✔️ 打包完成: ${artifact.src} → ${artifact.dest}`);
     }

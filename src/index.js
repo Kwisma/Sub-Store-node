@@ -6,7 +6,7 @@ import { fetchResponse } from './core/utils/download.js';
 import { safeLoad, safeDump } from './sub/backend/src/utils/yaml.js';
 // import PROXY_PRODUCERS from './core/producers/index.js';
 import PROXY_PRODUCERS from './sub/backend/src/core/proxy-utils/producers/index.js';
-const data =ProxyUtils.parse('dHJvamFuOi8vMmVhZGI5MmQtMTIwYi00OTllLTg3MDctYTg4ZTZhZDA4OWE5QDAuMC4wLjA6NDQzP3NlY3VyaXR5PXRscyZzbmk9ZXhhbXBsZS5jb20mZnA9Y2hyb21lJnR5cGU9d3MmaG9zdD0mcGF0aD0lMkYlM0ZlZCUzRDIwNDgmYWxwbj1oMyMlRTYlQkYlODAlRTYlQjQlQkJwZWdneQ==')
+const data = ProxyUtils.parse('dHJvamFuOi8vMmVhZGI5MmQtMTIwYi00OTllLTg3MDctYTg4ZTZhZDA4OWE5QDAuMC4wLjA6NDQzP3NlY3VyaXR5PXRscyZzbmk9ZXhhbXBsZS5jb20mZnA9Y2hyb21lJnR5cGU9d3MmaG9zdD0mcGF0aD0lMkYlM0ZlZCUzRDIwNDgmYWxwbj1oMyMlRTYlQkYlODAlRTYlQjQlQkJwZWdneQ==')
 console.log(data)
 /**
  * 订阅转换入口

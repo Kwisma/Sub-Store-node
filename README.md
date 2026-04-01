@@ -23,19 +23,32 @@
 pnpm install
 ```
 
-### 2. 开发模式运行
+### 2. 初始化子模块
+
+```bash
+git submodule update --init --recursive
+```
+
+
+### 3. 更新子模块
+
+```bash
+git submodule update --remote --recursive
+```
+
+### 4. 开发模式运行
 
 ```bash
 pnpm dev
 ```
 
-### 3. 构建项目
+### 5. 构建项目
 
 ```bash
 pnpm build
 ```
 
-### 4. 部署到 Cloudflare Workers
+### 6. 部署到 Cloudflare Workers
 
 ```bash
 pnpm deploy

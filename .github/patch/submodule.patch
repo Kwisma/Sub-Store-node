@@ -18,7 +18,7 @@ index 0587ef7..3bfd39c 100644
                      case 'mux':
                          if (proxy['plugin-opts'].mux)
                              parsedProxy.multiplex = { enabled: true };
-+                        optArr.push(`mux=${proxy['plugin-opts'].mux ?? true}`);
++                        optArr.push(`mux=${proxy['plugin-opts'].mux}`);
                          break;
                      default:
                          optArr.push(`${k}=${proxy['plugin-opts'][k]}`);

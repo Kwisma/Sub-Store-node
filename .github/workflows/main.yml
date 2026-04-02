@@ -6,11 +6,6 @@ on:
       - main
     paths:
       - "package.json"
-  pull_request:
-    branches:
-      - main
-    paths:
-      - "package.json"
 
 jobs:
   build:
@@ -31,13 +26,10 @@ jobs:
         run: |
           npm install -g pnpm
           pnpm i --no-frozen-lockfile
-          SUB_BACKEND="src/sub/backend"
-          if [ -d "$SUB_BACKEND" ] && [ -f "$SUB_BACKEND/package.json" ]; then
-            echo "Installing dependencies in $SUB_BACKEND ..."
-            pushd "$SUB_BACKEND" || exit 1
-            pnpm install --no-frozen-lockfile
-            popd
-          fi
+          cd src/sub
+          git apply ../../.github/patch/submodule.patch || exit 1
+          cd backend
+          pnpm i --no-frozen-lockfile
       - name: Bundle
         run: |
           pnpm build

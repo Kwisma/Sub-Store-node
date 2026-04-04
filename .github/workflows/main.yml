@@ -26,7 +26,9 @@ jobs:
         run: |
           npm install -g pnpm
           pnpm i --no-frozen-lockfile
-          cd src/sub/backend
+          cd src/sub
+          git apply ../../.github/patch/change.patch
+          cd backend
           pnpm i --no-frozen-lockfile
       - name: Bundle
         run: |

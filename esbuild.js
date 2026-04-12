@@ -1,8 +1,6 @@
 import esbuild from 'esbuild';
 import { readFile } from 'fs/promises';
-const pkg = JSON.parse(
-    await readFile(new URL('./src/sub/backend/package.json', import.meta.url))
-);
+const pkg = JSON.parse(await readFile(new URL('./src/sub/backend/package.json', import.meta.url)));
 const version = pkg.version;
 const artifacts = [{ src: 'index.js', dest: 'dist/_worker.js' }];
 (async () => {
@@ -18,8 +16,8 @@ const artifacts = [{ src: 'index.js', dest: 'dist/_worker.js' }];
             platform: 'browser', // 目标平台为浏览器
             logLevel: 'error',
             define: {
-                __VERSION__: `"${version}"`
-            }
+                __VERSION__: `"${version}"`,
+            },
         });
         console.log(`✔️ 打包完成: ${artifact.src} → ${artifact.dest}`);
     }

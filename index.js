@@ -1,4 +1,4 @@
-import processNodeConversion from './src/index.js'
+import processNodeConversion from './src/index.js';
 export default {
     async fetch(request) {
         const url = new URL(request.url);
@@ -8,9 +8,9 @@ export default {
         if (target && nodeArray) {
             try {
                 const result = await processNodeConversion(nodeArray, target);
-                let data = result.data
+                let data = result.data;
                 if (typeof data == 'object') {
-                    data = JSON.stringify(data)
+                    data = JSON.stringify(data);
                 }
                 return new Response(data, {
                     status: result.status,
@@ -40,10 +40,10 @@ function renderUsageInstructions() {
             example: '/?target=v2ray&url=UrlEncode(编码后的订阅)',
             examples: [
                 '/?target=v2ray&url=https%3A%2F%2Fexample.com%2Fsubscription',
-                '/?target=clash&url=https%3A%2F%2Fexample.com%2Fsub1,https%3A%2F%2Fexample.com%2Fsub1'
-            ]
-        }
-    }
+                '/?target=clash&url=https%3A%2F%2Fexample.com%2Fsub1,https%3A%2F%2Fexample.com%2Fsub1',
+            ],
+        },
+    };
     const html = `
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -633,7 +633,6 @@ function renderUsageInstructions() {
 </body>
 
 </html>
-    `
-    return new Response(html, { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
-    );
+    `;
+    return new Response(html, { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
 }

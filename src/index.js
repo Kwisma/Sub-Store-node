@@ -1,13 +1,15 @@
 import { base64EncodeUtf8, base64DecodeUtf8, isBase64 } from './core/utils/base64.js';
-// import { ProxyUtils } from './core/index.js';
-import { ProxyUtils } from './sub/backend/src/core/proxy-utils/index.js';
 import { fetchResponse } from './core/utils/download.js';
-// import { safeLoad, safeDump } from './core/utils/yaml.js';
+// 引用上游函数
+import { ProxyUtils } from './sub/backend/src/core/proxy-utils/index.js';
 import { safeLoad, safeDump } from './sub/backend/src/utils/yaml.js';
-// import PROXY_PRODUCERS from './core/producers/index.js';
 import PROXY_PRODUCERS from './sub/backend/src/core/proxy-utils/producers/index.js';
-const data = ProxyUtils.parse('dHJvamFuOi8vMmVhZGI5MmQtMTIwYi00OTllLTg3MDctYTg4ZTZhZDA4OWE5QDAuMC4wLjA6NDQzP3NlY3VyaXR5PXRscyZzbmk9ZXhhbXBsZS5jb20mZnA9Y2hyb21lJnR5cGU9d3MmaG9zdD0mcGF0aD0lMkYlM0ZlZCUzRDIwNDgmYWxwbj1oMyMlRTYlQkYlODAlRTYlQjQlQkJwZWdneQ==')
-console.log(data)
+// 引用本地函数
+// import { ProxyUtils } from './core/index.js';
+// import { safeLoad, safeDump } from './core/utils/yaml.js';
+// import PROXY_PRODUCERS from './core/producers/index.js';
+
+ProxyUtils.parse('dHJvamFuOi8vMmVhZGI5MmQtMTIwYi00OTllLTg3MDctYTg4ZTZhZDA4OWE5QDAuMC4wLjA6NDQzP3NlY3VyaXR5PXRscyZzbmk9ZXhhbXBsZS5jb20mZnA9Y2hyb21lJnR5cGU9d3MmaG9zdD0mcGF0aD0lMkYlM0ZlZCUzRDIwNDgmYWxwbj1oMyMlRTYlQkYlODAlRTYlQjQlQkJwZWdneQ==')
 /**
  * 订阅转换入口
  * @param {Array<string>} urlArray - 输入订阅URL数组

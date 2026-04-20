@@ -14,6 +14,12 @@ jobs:
           ref: "main"
           submodules: recursive
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: 'pnpm'
+
       - name: Check and update submodules
         id: check_submodules
         run: |
@@ -48,15 +54,9 @@ jobs:
           
           git push origin main
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: "20"
-
       - name: Install dependencies
         if: steps.check_submodules.outputs.has_updates == 'true'
         run: |
-          npm install -g pnpm
           pnpm i --no-frozen-lockfile
           cd src/sub/backend
           pnpm i --no-frozen-lockfile

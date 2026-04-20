@@ -13,6 +13,12 @@ jobs:
         with:
           ref: "main"
           submodules: recursive
+        
+      - uses: pnpm/action-setup@v6
+        name: Install pnpm
+        with:
+          version: 10
+          cache: true
 
       - name: Set up Node.js
         uses: actions/setup-node@v6

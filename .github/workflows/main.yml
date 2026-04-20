@@ -1,11 +1,8 @@
 name: build
 on:
+  schedule:
+    - cron: "0 16 * * *"
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - "package.json"
 
 jobs:
   build:
@@ -15,7 +12,41 @@ jobs:
         uses: actions/checkout@v3
         with:
           ref: "main"
-          submodules: recursive # ✅ 自动拉取子模块
+          submodules: recursive
+
+      - name: Check and update submodules
+        id: check_submodules
+        run: |
+          git submodule status --recursive > submodules_before.txt
+          
+          git submodule update --remote --recursive
+            
+          git submodule status --recursive > submodules_after.txt
+         
+          if ! diff submodules_before.txt submodules_after.txt > /dev/null; then
+            echo "Submodules have been updated"
+            echo "has_updates=true" >> $GITHUB_OUTPUT
+            
+            echo "Submodule changes:"
+            diff submodules_before.txt submodules_after.txt || true
+          else
+            echo "No submodule updates"
+            echo "has_updates=false" >> $GITHUB_OUTPUT
+          fi
+          rm -f submodules_before.txt submodules_after.txt
+
+      - name: Update package version if submodules changed
+        if: steps.check_submodules.outputs.has_updates == 'true'
+        run: |
+          pnpm version patch --no-git-tag-version
+          
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add .
+          git commit -m "chore: 同步 Sub-store 至 V$(node -p "require('./src/sub/backend/package.json').version")"
+          
+          git push origin main
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
@@ -23,31 +54,34 @@ jobs:
           node-version: "20"
 
       - name: Install dependencies
+        if: steps.check_submodules.outputs.has_updates == 'true'
         run: |
           npm install -g pnpm
           pnpm i --no-frozen-lockfile
-          cd src/sub
-          # git apply ../../.github/patch/change.patch
-          cd backend
+          cd src/sub/backend
           pnpm i --no-frozen-lockfile
+
       - name: Bundle
+        if: steps.check_submodules.outputs.has_updates == 'true'
         run: |
           pnpm build
 
       - id: tag
         name: Generate release tag
+        if: steps.check_submodules.outputs.has_updates == 'true'
         run: |
           SUBSTORE_RELEASE=`node --eval="process.stdout.write(require('./package.json').version)"`
           echo "release_tag=$SUBSTORE_RELEASE" >> $GITHUB_OUTPUT
 
       - name: Prepare release
+        if: steps.check_submodules.outputs.has_updates == 'true'
         run: |
           pnpm i -D conventional-changelog-cli
           npx conventional-changelog -p cli -i CHANGELOG.md -s
 
       - name: Release
         uses: softprops/action-gh-release@v1
-        if: ${{ success() }}
+        if: steps.check_submodules.outputs.has_updates == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -57,6 +91,7 @@ jobs:
             ./dist/_worker.js
 
       - name: Git push assets to "release" branch
+        if: steps.check_submodules.outputs.has_updates == 'true'
         run: |
           cd dist || exit 1
           git init

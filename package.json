@@ -1,6 +1,6 @@
 {
 	"name": "sub-store-node",
-	"version": "1.2.27",
+	"version": "1.2.28",
 	"private": true,
 	"license": "GPL-3.0",
 	"type": "module",

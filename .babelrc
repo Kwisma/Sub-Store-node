@@ -1,0 +1,27 @@
+{
+    "presets": [
+        [
+            "@babel/preset-env"
+        ]
+    ],
+    "env": {
+        "test": {
+            "presets": [
+                "@babel/preset-env"
+            ]
+        }
+    },
+    "plugins": [
+        [
+            "babel-plugin-relative-path-import",
+            {
+                "paths": [
+                    {
+                        "rootPathPrefix": "@",
+                        "rootPathSuffix": "src/sub/backend/src"
+                    }
+                ]
+            }
+        ]
+    ]
+}

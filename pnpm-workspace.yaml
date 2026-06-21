@@ -1,0 +1,8 @@
+# pnpm-workspace.yaml
+packages:
+  - "src/sub/backend"
+allowBuilds:
+  core-js: true
+  esbuild: true
+  sharp: true
+  workerd: true

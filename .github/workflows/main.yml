@@ -28,7 +28,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 'latest'
+          node-version: '24'
           cache: 'pnpm'
 
       - name: Check and update submodules
@@ -68,8 +68,6 @@ jobs:
       - name: Install dependencies
         if: steps.check_submodules.outputs.has_updates == 'true' || github.event_name == 'push'
         run: |
-          pnpm i --no-frozen-lockfile
-          cd src/sub/backend
           pnpm i --no-frozen-lockfile
 
       - name: Bundle

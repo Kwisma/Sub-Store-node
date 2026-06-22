@@ -1,6 +1,7 @@
 # pnpm-workspace.yaml
 packages:
-  - "src/sub/backend"
+  - "."
+  - "./src/sub/backend"
 allowBuilds:
   core-js: true
   esbuild: true

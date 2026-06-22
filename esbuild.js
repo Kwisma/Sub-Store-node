@@ -1,9 +1,9 @@
-
 const fs = require('fs');
 const path = require('path');
 const { build } = require('esbuild');
 
 const objectHasOwnPolyfill = require.resolve('core-js/actual/object/has-own');
+
 !(async () => {
     const pkg = JSON.parse(
         await fs.promises.readFile(
@@ -15,7 +15,7 @@ const objectHasOwnPolyfill = require.resolve('core-js/actual/object/has-own');
     const mainVersion = JSON.parse(
         fs.readFileSync(path.join(__dirname, 'package.json'), 'utf-8'),
     ).version.trim();
-    const dist = 'dist/_workers.js'
+    const dist = 'dist/_worker.js'
     const artifacts = [
         { src: 'index.js', dest: dist },
     ];
@@ -34,6 +34,7 @@ const objectHasOwnPolyfill = require.resolve('core-js/actual/object/has-own');
                 __VERSION__: `"${version}"`
             }
         });
+
         fs.writeFileSync(
             path.join(__dirname, dist),
             `// SUB_STORE_NODE_VERSION: ${mainVersion}

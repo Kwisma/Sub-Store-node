@@ -1,5 +1,9 @@
 name: build
+
 on:
+  push:
+    tags:
+      - 'v*'
   schedule:
     - cron: "0 16 * * *"
   workflow_dispatch:
@@ -7,6 +11,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -14,13 +19,13 @@ jobs:
           ref: "main"
           submodules: recursive
         
-      - uses: pnpm/action-setup@v6
-        name: Install pnpm
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
         with:
           version: 10
           cache: true
 
-      - name: Set up Node.js 16-nightly, latest, node
+      - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
           node-version: 'latest'
@@ -48,7 +53,7 @@ jobs:
           rm -f submodules_before.txt submodules_after.txt
 
       - name: Update package version if submodules changed
-        if: steps.check_submodules.outputs.has_updates == 'true'
+        if: steps.check_submodules.outputs.has_updates == 'true' && github.event_name != 'push'
         run: |
           pnpm version patch --no-git-tag-version
           
@@ -61,43 +66,52 @@ jobs:
           git push origin main
 
       - name: Install dependencies
-        if: steps.check_submodules.outputs.has_updates == 'true'
+        if: steps.check_submodules.outputs.has_updates == 'true' || github.event_name == 'push'
         run: |
           pnpm i --no-frozen-lockfile
           cd src/sub/backend
           pnpm i --no-frozen-lockfile
 
       - name: Bundle
-        if: steps.check_submodules.outputs.has_updates == 'true'
+        if: steps.check_submodules.outputs.has_updates == 'true' || github.event_name == 'push'
         run: |
           pnpm build
 
-      - id: tag
-        name: Generate release tag
-        if: steps.check_submodules.outputs.has_updates == 'true'
+      - name: Generate release tag
+        id: tag
+        if: steps.check_submodules.outputs.has_updates == 'true' || github.event_name == 'push'
         run: |
-          SUBSTORE_RELEASE=`node --eval="process.stdout.write(require('./package.json').version)"`
-          echo "release_tag=$SUBSTORE_RELEASE" >> $GITHUB_OUTPUT
+          if [ "${{ github.event_name }}" == "push" ]; then
+            # 从推送的 tag 获取版本号
+            TAG_NAME="${{ github.ref_name }}"
+            # 移除 v 前缀（如果存在）
+            VERSION="${TAG_NAME#v}"
+            echo "release_tag=$VERSION" >> $GITHUB_OUTPUT
+          else
+            # 从 package.json 获取版本号
+            SUBSTORE_RELEASE=`node --eval="process.stdout.write(require('./package.json').version)"`
+            echo "release_tag=$SUBSTORE_RELEASE" >> $GITHUB_OUTPUT
+          fi
 
       - name: Prepare release
-        if: steps.check_submodules.outputs.has_updates == 'true'
+        if: steps.check_submodules.outputs.has_updates == 'true' || github.event_name == 'push'
         run: |
           pnpm i -D conventional-changelog-cli
           npx conventional-changelog -p cli -i CHANGELOG.md -s
 
       - name: Release
         uses: softprops/action-gh-release@v1
-        if: steps.check_submodules.outputs.has_updates == 'true'
+        if: steps.check_submodules.outputs.has_updates == 'true' || github.event_name == 'push'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           body_path: ./CHANGELOG.md
-          tag_name: ${{ steps.tag.outputs.release_tag }}
+          tag_name: ${{ github.event_name == 'push' && github.ref_name || steps.tag.outputs.release_tag }}
           files: |
             ./dist/_worker.js
 
       - name: Git push assets to "release" branch
-        if: steps.check_submodules.outputs.has_updates == 'true'
+        if: steps.check_submodules.outputs.has_updates == 'true' || github.event_name == 'push'
         run: |
           cd dist || exit 1
           git init

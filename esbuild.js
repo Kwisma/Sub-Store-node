@@ -17,7 +17,7 @@ const objectHasOwnPolyfill = require.resolve('core-js/actual/object/has-own');
     ).version.trim();
     const dist = 'dist/_worker.js'
     const artifacts = [
-        { src: 'index.js', dest: dist },
+        { src: 'src/worker.js', dest: dist },
     ];
 
     for await (const artifact of artifacts) {

@@ -1,13 +1,14 @@
-import processNodeConversion from './src/index.js'
+import processNodeConversion from './sub.js'
 export default {
     async fetch(request) {
         const url = new URL(request.url);
         const target = url.searchParams.get('target');
         const inputnode = url.searchParams.get('url');
+        const api = url.searchParams.get('api');
         const nodeArray = inputnode ? inputnode.split(/[,|]/) : [];
         if (target && nodeArray) {
             try {
-                const result = await processNodeConversion(nodeArray, target);
+                const result = await processNodeConversion(nodeArray, target, api);
                 let data = result.data
                 if (typeof data == 'object') {
                     data = JSON.stringify(data)

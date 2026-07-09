@@ -1,11 +1,11 @@
 {
 	"name": "sub-store-node",
-	"version": "1.3.12",
+	"version": "1.3.13",
 	"private": true,
 	"license": "GPL-3.0",
 	"scripts": {
 		"deploy": "wrangler deploy",
-		"dev": "wrangler dev index.js --live-reload",
+		"dev": "wrangler dev ./src/worker.js --live-reload",
 		"build": "node esbuild.js",
 		"start": "wrangler dev",
 		"lint": "prettier --write \"**/*.js\""
@@ -18,7 +18,7 @@
 		"jsrsasign": "^11.1.0",
 		"lodash": "^4.17.21",
 		"peggy": "^5.0.6",
-		"static-js-yaml": "^1.0.0"
+		"yaml": "^2.9.0"
 	},
 	"devDependencies": {
 		"esbuild": "^0.25.9",

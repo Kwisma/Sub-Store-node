@@ -114,6 +114,7 @@ async function produceArtifact(urls, platform) {
         names.push(currentNames);
     }
     data = ProxyUtils.produce(data, platform);
+    data = testJSON(data)
     if (['mihomo', 'clash', 'meta', 'clashmeta', 'clash.meta'].includes(platform.toLowerCase())) {
         data = YAML.parse(data);
     }
@@ -181,5 +182,18 @@ function isUrl(str) {
         return ['http:', 'https:'].includes(url.protocol);
     } catch {
         return false;
+    }
+}
+
+/**
+ * 
+ * @param {string} 转化数据类型
+ * @returns 转化后的数据
+ */
+function testJSON(data) {
+    try {
+        return JSON.parse(data);
+    } catch {
+        return data;
     }
 }

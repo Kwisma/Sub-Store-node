@@ -23,6 +23,6 @@
 	"devDependencies": {
 		"esbuild": "^0.25.9",
 		"prettier": "^3.6.2",
-		"wrangler": "^4.33.1"
+		"wrangler": "^4.107.1"
 	}
 }

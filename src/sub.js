@@ -1,9 +1,9 @@
 import { ProxyUtils } from './sub/backend/src/core/proxy-utils/index.js';
 import PROXY_PRODUCERS from './sub/backend/src/core/proxy-utils/producers/index.js';
-import YAML from 'yaml'
+import YAML from 'yaml';
 
 ProxyUtils.parse(
-    'dHJvamFuOi8vMmVhZGI5MmQtMTIwYi00OTllLTg3MDctYTg4ZTZhZDA4OWE5QDAuMC4wLjA6NDQzP3NlY3VyaXR5PXRscyZzbmk9ZXhhbXBsZS5jb20mZnA9Y2hyb21lJnR5cGU9d3MmaG9zdD0mcGF0aD0lMkYlM0ZlZCUzRDIwNDgmYWxwbj1oMyMlRTYlQkYlODAlRTYlQjQlQkJwZWdneQ=='
+    'dHJvamFuOi8vMmVhZGI5MmQtMTIwYi00OTllLTg3MDctYTg4ZTZhZDA4OWE5QDAuMC4wLjA6NDQzP3NlY3VyaXR5PXRscyZzbmk9ZXhhbXBsZS5jb20mZnA9Y2hyb21lJnR5cGU9d3MmaG9zdD0mcGF0aD0lMkYlM0ZlZCUzRDIwNDgmYWxwbj1oMyMlRTYlQkYlODAlRTYlQjQlQkJwZWdneQ==',
 );
 
 /**
@@ -27,33 +27,36 @@ ProxyUtils.parse(
 export default async function processNodeConversion(urlArray, platform, api) {
     const results = {
         data: {},
-        headers: []
+        headers: [],
     };
     urlArray = Array.isArray(urlArray) ? urlArray : [urlArray];
     if (!urlArray || urlArray.length === 0) {
-        results.status = 400
+        results.status = 400;
         results.data = '输入节点数组不能为空';
         return results;
     }
     if (!PROXY_PRODUCERS[platform]) {
-        results.status = 400
+        results.status = 400;
         results.data = `目标平台：不支持 ${platform}！`;
         return results;
     }
     try {
-        const { names, data, headers } = await produceArtifact(urlArray, platform)
-        api ? results.data = {
-            names, data
-        } : results.data = data
+        const { names, data, headers } = await produceArtifact(urlArray, platform);
+        api
+            ? (results.data = {
+                  names,
+                  data,
+              })
+            : (results.data = data);
         if (headers.length) {
             results.headers = headers[Math.floor(Math.random() * headers.length)];
         }
     } catch (error) {
-        results.status = 500
+        results.status = 500;
         results.data = `处理节点失败：${error.message}`;
         return results;
     }
-    results.status = 200
+    results.status = 200;
     return results;
 }
 
@@ -69,8 +72,8 @@ async function produceArtifact(urls, platform) {
         headers = [];
     const responseProxies = [];
     const url = (Array.isArray(urls) ? urls : [urls]).map((i) => i.split(',')).flat();
-    const invalidUrls = url.filter(item => !isUrl(item));
-    const validUrls = url.filter(item => isUrl(item));
+    const invalidUrls = url.filter((item) => !isUrl(item));
+    const validUrls = url.filter((item) => isUrl(item));
     if (invalidUrls.length) {
         const currentProxies = invalidUrls
             .map((i) => ProxyUtils.parse(i))
@@ -114,7 +117,7 @@ async function produceArtifact(urls, platform) {
         names.push(currentNames);
     }
     data = ProxyUtils.produce(data, platform);
-    data = testJSON(data)
+    data = testJSON(data);
     if (['mihomo', 'clash', 'meta', 'clashmeta', 'clash.meta'].includes(platform.toLowerCase())) {
         data = YAML.parse(data);
     }
@@ -186,7 +189,7 @@ function isUrl(str) {
 }
 
 /**
- * 
+ *
  * @param {string} 转化数据类型
  * @returns 转化后的数据
  */

@@ -86,7 +86,7 @@ async function produceArtifact(urls, platform) {
             responseProxies.push(currentProxies);
         }
     }
-    const responses = await Promise.all(validUrls.map((url) => fetchResponse(url)));
+    const responses = await Promise.all(validUrls.map((url) => fetchResponse(url, 'v2ray')));
     for (const res of responses) {
         if (!res?.data) continue;
         const raw = res.data;

@@ -11,24 +11,6 @@ importers:
       core-js:
         specifier: ^3.49.0
         version: 3.49.0
-      ip-address:
-        specifier: ^10.0.1
-        version: 10.1.0
-      js-base64:
-        specifier: ^3.7.8
-        version: 3.7.8
-      json5:
-        specifier: ^2.2.3
-        version: 2.2.3
-      jsrsasign:
-        specifier: ^11.1.0
-        version: 11.1.1
-      lodash:
-        specifier: ^4.17.21
-        version: 4.17.23
-      peggy:
-        specifier: ^5.0.6
-        version: 5.1.0
       yaml:
         specifier: ^2.9.0
         version: 2.9.0
@@ -1416,10 +1398,6 @@ packages:
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
 
-  '@peggyjs/from-mem@3.1.3':
-    resolution: {integrity: sha512-LLlgtfXIaeYXoOYovOI0spLM8ZXaqkAlmcRRrLzHJzLMqkU6Sw0R4KMoCoHx1PjaP815pSCBlS+BN6aD8t1Jgg==}
-    engines: {node: '>=20.8'}
-
   '@pkgjs/parseargs@0.11.0':
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
     engines: {node: '>=14'}
@@ -1652,10 +1630,6 @@ packages:
 
   color-name@1.1.4:
     resolution: {integrity: sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==}
-
-  commander@14.0.3:
-    resolution: {integrity: sha512-H+y0Jo/T1RZ9qPP4Eh1pkcQcLRglraJaSLoyOtHxu6AapkjWVCy2Sit1QQ4x3Dng8qDlSsZEet7g5Pq06MvTgw==}
-    engines: {node: '>=20'}
 
   commander@6.2.1:
     resolution: {integrity: sha512-U7VdrJFnJgo4xjrHpTzu0yrHPGImdsmD95ZlgYSEajAn2JKzDhDTPG9kBTefmObL2w/ngeZnilk+OV9CG3d7UA==}
@@ -2168,10 +2142,6 @@ packages:
     resolution: {integrity: sha512-4gd7VpWNQNB4UKKCFFVcp1AVv+FMOgs9NKzjHKusc8jTMhd5eL1NqQqOpE0KzMds804/yHlglp3uxgluOqAPLw==}
     engines: {node: '>= 0.4'}
 
-  ip-address@10.1.0:
-    resolution: {integrity: sha512-XXADHxXmvT9+CRxhXg56LJovE+bmWnEWB78LB83VZTprKTmaC5QfruXocxzTZ2Kl0DNwKuBdlIhjL8LeY8Sf8Q==}
-    engines: {node: '>= 12'}
-
   ip-address@10.2.0:
     resolution: {integrity: sha512-/+S6j4E9AHvW9SWMSEY9Xfy66O5PWvVEJ08O0y5JGyEKQpojb0K0GKpz/v5HJ/G0vi3D2sjGK78119oXZeE0qA==}
     engines: {node: '>= 12'}
@@ -2628,11 +2598,6 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
-  peggy@5.1.0:
-    resolution: {integrity: sha512-IEo5aYRZ2kXH4Qby06cjtL114PZnwLoTiA41vUmg2vPZgANn+c87m5BUurhuDr5/cu758ZlpgsAfBVx+hhO5+w==}
-    engines: {node: '>=20'}
-    hasBin: true
-
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
 
@@ -2883,10 +2848,6 @@ packages:
   source-map-generator@0.8.0:
     resolution: {integrity: sha512-psgxdGMwl5MZM9S3FWee4EgsEaIjahYV5AzGnwUvPhWeITz/j6rKpysQHlQ4USdxvINlb8lKfWGIXwfkrgtqkA==}
     engines: {node: '>= 10'}
-
-  source-map-generator@2.0.6:
-    resolution: {integrity: sha512-IlassDs1Ve8nV6uyQZXF9kdkJpVKnMte2JZQXu13M0A5zwc+vu6+LNHfmxsHBMDtoZE21RHiKI0/xvpecZRCNg==}
-    engines: {node: '>=20'}
 
   source-map-support@0.5.21:
     resolution: {integrity: sha512-uBHU3L3czsIyYXKX88fdrGovxdSCoTGDRZ6SYXtSRxLZUzHg5P/66Ht6uoUlHu9EZod+inXhKo3qQgwXUT/y1w==}
@@ -4319,10 +4280,6 @@ snapshots:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.20.1
 
-  '@peggyjs/from-mem@3.1.3':
-    dependencies:
-      semver: 7.7.4
-
   '@pkgjs/parseargs@0.11.0':
     optional: true
 
@@ -4599,8 +4556,6 @@ snapshots:
       color-name: 1.1.4
 
   color-name@1.1.4: {}
-
-  commander@14.0.3: {}
 
   commander@6.2.1: {}
 
@@ -5284,8 +5239,6 @@ snapshots:
       hasown: 2.0.4
       side-channel: 1.1.1
 
-  ip-address@10.1.0: {}
-
   ip-address@10.2.0: {}
 
   ip-address@9.0.5:
@@ -5731,12 +5684,6 @@ snapshots:
       commander: 9.5.0
       source-map-generator: 0.8.0
 
-  peggy@5.1.0:
-    dependencies:
-      '@peggyjs/from-mem': 3.1.3
-      commander: 14.0.3
-      source-map-generator: 2.0.6
-
   picocolors@1.1.1: {}
 
   picomatch@2.3.2: {}
@@ -6030,8 +5977,6 @@ snapshots:
       smart-buffer: 4.2.0
 
   source-map-generator@0.8.0: {}
-
-  source-map-generator@2.0.6: {}
 
   source-map-support@0.5.21:
     dependencies:

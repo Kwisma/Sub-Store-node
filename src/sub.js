@@ -2,10 +2,6 @@ import { ProxyUtils } from './sub/backend/src/core/proxy-utils/index.js';
 import PROXY_PRODUCERS from './sub/backend/src/core/proxy-utils/producers/index.js';
 import YAML from 'yaml';
 
-ProxyUtils.parse(
-    'dHJvamFuOi8vMmVhZGI5MmQtMTIwYi00OTllLTg3MDctYTg4ZTZhZDA4OWE5QDAuMC4wLjA6NDQzP3NlY3VyaXR5PXRscyZzbmk9ZXhhbXBsZS5jb20mZnA9Y2hyb21lJnR5cGU9d3MmaG9zdD0mcGF0aD0lMkYlM0ZlZCUzRDIwNDgmYWxwbj1oMyMlRTYlQkYlODAlRTYlQjQlQkJwZWdneQ==',
-);
-
 /**
  * 处理节点转换请求
  *
@@ -44,9 +40,9 @@ export default async function processNodeConversion(urlArray, platform, api) {
         const { names, data, headers } = await produceArtifact(urlArray, platform);
         api
             ? (results.data = {
-                  names,
-                  data,
-              })
+                names,
+                data,
+            })
             : (results.data = data);
         if (headers.length) {
             results.headers = headers[Math.floor(Math.random() * headers.length)];
@@ -70,10 +66,16 @@ export default async function processNodeConversion(urlArray, platform, api) {
 async function produceArtifact(urls, platform) {
     let data = [],
         headers = [];
-    const responseProxies = [];
+    const responseProxies = [], validUrls = [], invalidUrls = [];
     const url = (Array.isArray(urls) ? urls : [urls]).map((i) => i.split(',')).flat();
-    const invalidUrls = url.filter((item) => !isUrl(item));
-    const validUrls = url.filter((item) => isUrl(item));
+
+    url.forEach((item) => {
+        if (isUrl(item)) {
+            validUrls.push(item);
+        } else {
+            invalidUrls.push(item);
+        }
+    });
     if (invalidUrls.length) {
         const currentProxies = invalidUrls
             .map((i) => ProxyUtils.parse(i))
